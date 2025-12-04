@@ -1,0 +1,69 @@
+# ============================================================================
+# .htaccess para React Router - Respira CMP
+# ============================================================================
+# 
+# Este archivo soluciona el problema de F5 (refresh) en React Router
+# 
+# INSTRUCCIONES:
+# 1. Copia este archivo a: frontend/dist/.htaccess
+# 2. Ajusta RewriteBase según tu configuración:
+#    - Si usas: http://172.17.16.16:84/respira/frontend/dist/
+#      RewriteBase /respira/frontend/dist/
+#    - Si usas Virtual Host: http://respira.local:84/
+#      RewriteBase /
+# 3. Reinicia Apache en Laragon
+# ============================================================================
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  
+  # Ajusta esta línea según tu configuración
+  # Para: http://IP:84/respira/frontend/dist/
+  RewriteBase /respira/frontend/dist/
+  
+  # Para Virtual Host sin subdirectorios: http://respira.local:84/
+  # RewriteBase /
+  
+  # Si el archivo existe (CSS, JS, imágenes), sirvelo directamente
+  RewriteCond %{REQUEST_FILENAME} !-f
+  
+  # Si el directorio existe, sirvelo directamente
+  RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # Si es un archivo físico (no una ruta de React), sirvelo
+  RewriteCond %{REQUEST_FILENAME} !-l
+  
+  # Todas las demás rutas apuntan a index.html (React Router)
+  RewriteRule ^ index.html [QSA,L]
+</IfModule>
+
+# Prevenir listado de directorios
+Options -Indexes
+
+# Habilitar seguimiento de enlaces simbólicos
+Options +FollowSymLinks
+
+# Configuración de tipos MIME para archivos de Vite
+<IfModule mod_mime.c>
+  AddType application/javascript .js
+  AddType text/css .css
+  AddType image/svg+xml .svg
+</IfModule>
+
+# Habilitar compresión (opcional, mejora performance)
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript
+</IfModule>
+
+# Cache para assets estáticos (opcional)
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpg "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType text/css "access plus 1 month"
+  ExpiresByType application/javascript "access plus 1 month"
+  ExpiresByType image/x-icon "access plus 1 year"
+</IfModule>
+
