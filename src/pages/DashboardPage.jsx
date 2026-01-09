@@ -14,6 +14,7 @@ const DashboardPage = () => {
     const abortControllerRef = useRef(null);
     const isMountedRef = useRef(false);
     const initialLoadDoneRef = useRef(false);
+    const filtersChangeRef = useRef(false);
 
     const [filters, setFilters] = useState({
         departamento: '',
@@ -120,9 +121,10 @@ const DashboardPage = () => {
         // Marcar como montado
         isMountedRef.current = true;
 
-        // Solo hacer la carga inicial una vez
+        // Solo hacer la carga inicial una vez (incluye verificación para StrictMode)
         if (!initialLoadDoneRef.current) {
             initialLoadDoneRef.current = true;
+            console.log('🔄 [Dashboard] Carga inicial iniciada');
             fetchFiltros();
             fetchDashboardData();
         }
@@ -138,13 +140,20 @@ const DashboardPage = () => {
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Efecto separado para cambios en filtros (solo después de la carga inicial)
+    // Usar useRef para rastrear si ya se ejecutó la carga inicial y evitar doble llamado
+    const filtersChangeRef = useRef(false);
     useEffect(() => {
-        // Solo ejecutar si la carga inicial ya se completó
-        if (!initialLoadDoneRef.current) {
+        // Ignorar el primer render (montaje inicial) - solo ejecutar cuando filters realmente cambian
+        if (!filtersChangeRef.current) {
+            filtersChangeRef.current = true;
             return;
         }
         
-        fetchDashboardData();
+        // Solo ejecutar si la carga inicial ya se completó Y los filtros realmente cambiaron
+        if (initialLoadDoneRef.current) {
+            console.log('🔄 [Dashboard] Filtros cambiaron, recargando datos...', filters);
+            fetchDashboardData();
+        }
     }, [filters, fetchDashboardData]);
 
     if (loading) {
