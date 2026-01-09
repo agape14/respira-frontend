@@ -141,7 +141,6 @@ const DashboardPage = () => {
 
     // Efecto separado para cambios en filtros (solo después de la carga inicial)
     // Usar useRef para rastrear si ya se ejecutó la carga inicial y evitar doble llamado
-    const filtersChangeRef = useRef(false);
     useEffect(() => {
         // Ignorar el primer render (montaje inicial) - solo ejecutar cuando filters realmente cambian
         if (!filtersChangeRef.current) {
