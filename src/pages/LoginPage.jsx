@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
     User, Lock, Eye, EyeOff, Heart, Shield, 
-    Activity, Users, Stethoscope, Building 
+    Activity, Users, Stethoscope, Building, BarChart3
 } from 'lucide-react';
 
 const LoginPage = () => {
@@ -123,11 +123,10 @@ const LoginPage = () => {
                     {/* Contenido Central */}
                     <div className="space-y-6">
                         <h2 className="text-white text-4xl font-bold leading-tight max-w-lg">
-                            Plataforma de Evaluaciones Psicológicas para Serumistas
+                            Plataforma de Gestión y Acompañamiento del Programa RESPIRA
                         </h2>
                         <p className="text-white/90 text-lg max-w-md leading-relaxed">
-                            Sistema integral para la gestión de citas, evaluaciones psicológicas 
-                            y seguimiento de atención a médicos serumistas.
+                            Sistema integral para la administración de citas, seguimiento profesional, soporte emocional y gestión de intervenciones del Programa RESPIRA dirigido a médicos SERUMS en todo el país.
                         </p>
                         
                         {/* Características */}
@@ -137,17 +136,26 @@ const LoginPage = () => {
                                     <Shield className="h-5 w-5 text-[#F8AD1D]" strokeWidth={2} />
                                 </div>
                                 <div>
-                                    <p className="text-white font-semibold">Seguro y Confiable</p>
-                                    <p className="text-white/70 text-sm">Protección de datos profesional</p>
+                                    <p className="text-white font-semibold">Seguro y Confidencial</p>
+                                    <p className="text-white/70 text-sm">Protección estricta de datos sensibles y manejo profesional de la información.</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-lg flex items-center justify-center">
-                                    <Activity className="h-5 w-5 text-[#F8AD1D]" strokeWidth={2} />
+                                    <Stethoscope className="h-5 w-5 text-[#F8AD1D]" strokeWidth={2} />
+                                </div>
+                                <div>
+                                    <p className="text-white font-semibold">Acompañamiento Integral</p>
+                                    <p className="text-white/70 text-sm">Herramientas para la coordinación psicológica, legal, emocional y de riesgo del médico SERUMS.</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                                    <BarChart3 className="h-5 w-5 text-[#F8AD1D]" strokeWidth={2} />
                                 </div>
                                 <div>
                                     <p className="text-white font-semibold">Gestión Eficiente</p>
-                                    <p className="text-white/70 text-sm">Optimiza tu flujo de trabajo</p>
+                                    <p className="text-white/70 text-sm">Optimiza el flujo de trabajo del equipo RESPIRA y facilita la trazabilidad de casos.</p>
                                 </div>
                             </div>
                         </div>

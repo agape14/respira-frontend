@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../api/axios';
 import { Users, FileText, Calendar, ClipboardCheck, AlertTriangle, Clock, ExternalLink } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -37,7 +37,7 @@ const ExternalDashboardPage = () => {
             setError(null);
 
             // Llamar al endpoint público con token e id_cr
-            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/external/dashboard`, {
+            const response = await axiosInstance.get('/external/dashboard', {
                 params: {
                     token: token,
                     id_cr: idCr

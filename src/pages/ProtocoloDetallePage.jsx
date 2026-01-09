@@ -5,7 +5,7 @@ import MainLayout from '../components/layouts/MainLayout';
 import Swal from 'sweetalert2';
 import {
     ArrowLeft, ChevronDown, ChevronUp, User, Calendar, FileText, Activity,
-    Brain, Clipboard, MessageSquare, Save, UserX, CircleCheck
+    Brain, Clipboard, MessageSquare, Save, UserX, CircleCheck, Download, Loader2
 } from 'lucide-react';
 
 // Helper para campos
@@ -208,6 +208,7 @@ const ProtocoloDetallePage = () => {
     const [loadingDerivacion, setLoadingDerivacion] = useState(false);
 
     const [esRemunerado, setEsRemunerado] = useState(false);
+    const [downloadingPdf, setDownloadingPdf] = useState(false);
 
     useEffect(() => {
         if (derivarModalOpen) {
@@ -252,6 +253,31 @@ const ProtocoloDetallePage = () => {
 
     const handleDerivar = () => {
         setDerivarModalOpen(true);
+    };
+
+    const handleDownloadPdf = async () => {
+        setDownloadingPdf(true);
+        try {
+            const response = await axios.get(`/protocolos/pdf/${data.cita.paciente_id}`, {
+                responseType: 'blob'
+            });
+            
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+            link.download = `protocolo_intervencion_${paciente.nombre_completo?.replace(/\s+/g, '_') || data.cita.paciente_id}_${timestamp}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error al descargar PDF:', error);
+            Swal.fire('Error', 'No se pudo descargar el PDF', 'error');
+        } finally {
+            setDownloadingPdf(false);
+        }
     };
 
     const handleSubmitDerivacion = async () => {
@@ -437,6 +463,18 @@ const ProtocoloDetallePage = () => {
                                     )}
                                 </div>
                             </div>
+                            <button
+                                onClick={handleDownloadPdf}
+                                disabled={downloadingPdf}
+                                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all h-9 px-4 py-2 bg-[#752568] hover:bg-[#5a1d4f] text-white disabled:opacity-50"
+                            >
+                                {downloadingPdf ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Download className="h-4 w-4" />
+                                )}
+                                {downloadingPdf ? 'Descargando...' : 'Descargar PDF'}
+                            </button>
                         </div>
                     </div>
                 ) : !data.esta_derivada && isEditable && (

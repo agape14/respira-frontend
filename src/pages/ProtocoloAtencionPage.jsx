@@ -371,9 +371,24 @@ const ProtocoloAtencionPage = () => {
         }
     };
 
+    // Calcular total en suma
+    const totalEnSuma = stats.por_atender + stats.atendidos + stats.no_se_presentaron + 
+                        stats.cancelados + stats.finalizados + stats.derivados;
+
     return (
         <MainLayout>
             <div className="space-y-6 font-sans">
+                {/* Encabezado */}
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-2xl font-bold text-[#752568]">Protocolo de Atención</h1>
+                        <div className="text-right">
+                            <p className="text-xs text-gray-500 uppercase font-medium mb-1">Total en Suma</p>
+                            <p className="text-3xl font-bold text-[#752568]">{totalEnSuma}</p>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Filtros */}
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-2 mb-4 text-[#752568]">

@@ -18,7 +18,9 @@ import {
     Calendar,
     Shield,
     AlertTriangle,
-    UserCog
+    UserCog,
+    Power,
+    PowerOff
 } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -37,6 +39,9 @@ const ConfiguracionPage = () => {
     const [consejosRegionales, setConsejosRegionales] = useState([]);
     const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
     const [currentToken, setCurrentToken] = useState(null);
+
+    // Cortes / Procesos
+    const [procesos, setProcesos] = useState([]);
 
 
     // New states for filtering
@@ -63,6 +68,8 @@ const ConfiguracionPage = () => {
         } else if (activeTab === 'tokens') {
             fetchTokens();
             fetchConsejosRegionales();
+        } else if (activeTab === 'cortes') {
+            fetchProcesos();
         }
     }, [activeTab]);
 
@@ -123,26 +130,36 @@ const ConfiguracionPage = () => {
         }
     };
 
-    const handleDeleteUser = async (id) => {
+    const handleToggleUserStatus = async (user) => {
+        const estaActivo = user.estado === 'Activo';
+        const titulo = estaActivo ? '¿Desactivar usuario?' : '¿Activar usuario?';
+        const texto = estaActivo 
+            ? 'El usuario será desactivado y no podrá iniciar sesión'
+            : 'El usuario será activado y podrá iniciar sesión';
+        const textoBoton = estaActivo ? 'Sí, desactivar' : 'Sí, activar';
+
         const result = await Swal.fire({
-            title: '¿Estás seguro?',
-            text: "No podrás revertir esta acción",
+            title: titulo,
+            text: texto,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#752568',
             cancelButtonColor: '#d33',
-            confirmButtonText: 'Sí, eliminar',
+            confirmButtonText: textoBoton,
             cancelButtonText: 'Cancelar'
         });
 
         if (result.isConfirmed) {
             try {
-                await axios.delete(`/users/${id}`);
-                Swal.fire('Eliminado', 'El usuario ha sido eliminado.', 'success');
+                await axios.delete(`/users/${user.id}`);
+                const mensaje = estaActivo 
+                    ? 'Usuario desactivado correctamente'
+                    : 'Usuario activado correctamente';
+                Swal.fire(estaActivo ? 'Usuario desactivado' : 'Usuario activado', mensaje, 'success');
                 fetchUsers();
             } catch (error) {
-                console.error('Error deleting user:', error);
-                Swal.fire('Error', 'No se pudo eliminar el usuario', 'error');
+                console.error('Error cambiando estado del usuario:', error);
+                Swal.fire('Error', 'No se pudo cambiar el estado del usuario', 'error');
             }
         }
     };
@@ -189,6 +206,113 @@ const ConfiguracionPage = () => {
             setConsejosRegionales(response.data);
         } catch (error) {
             console.error('Error fetching consejos regionales:', error);
+        }
+    };
+
+    // ========================================================================
+    // FUNCIONES PARA CORTES / PROCESOS
+    // ========================================================================
+    const fetchProcesos = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get('/configuracion/procesos');
+            setProcesos(response.data || []);
+        } catch (error) {
+            console.error('Error fetching procesos:', error);
+            Swal.fire('Error', 'No se pudieron cargar los cortes', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const openProcesoModal = async (proceso = null) => {
+        const isEdit = Boolean(proceso);
+        const defaultAnio = proceso?.anio || new Date().getFullYear();
+        const defaultCorte = proceso?.corte || 'I';
+        const defaultActivo = (proceso?.activo ?? 1) ? true : false;
+
+        const result = await Swal.fire({
+            title: isEdit ? 'Editar Corte' : 'Nuevo Corte',
+            html: `
+                <div class="text-left space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Año</label>
+                        <input id="anio" type="number" class="swal2-input" style="width: 100%; margin: 0;" value="${defaultAnio}" min="2000" max="2100" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Corte</label>
+                        <select id="corte" class="swal2-input" style="width: 100%; margin: 0;">
+                            <option value="I" ${defaultCorte === 'I' ? 'selected' : ''}>I</option>
+                            <option value="II" ${defaultCorte === 'II' ? 'selected' : ''}>II</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input id="activo" type="checkbox" ${defaultActivo ? 'checked' : ''} />
+                        <label for="activo" class="text-sm text-gray-700">Activo</label>
+                    </div>
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: isEdit ? 'Guardar' : 'Crear',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#752568',
+            preConfirm: () => {
+                const anio = document.getElementById('anio')?.value;
+                const corte = document.getElementById('corte')?.value;
+                const activo = document.getElementById('activo')?.checked;
+                if (!anio || !corte) {
+                    Swal.showValidationMessage('Año y corte son requeridos');
+                    return;
+                }
+                return { anio: Number(anio), corte, activo };
+            }
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            setLoading(true);
+            if (isEdit) {
+                await axios.put(`/configuracion/procesos/${proceso.id_proceso}`, result.value);
+                Swal.fire('Éxito', 'Corte actualizado correctamente', 'success');
+            } else {
+                await axios.post('/configuracion/procesos', result.value);
+                Swal.fire('Éxito', 'Corte creado correctamente', 'success');
+            }
+            fetchProcesos();
+        } catch (error) {
+            console.error('Error saving proceso:', error);
+            Swal.fire('Error', error.response?.data?.message || 'No se pudo guardar el corte', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteProceso = async (proceso) => {
+        const result = await Swal.fire({
+            title: '¿Eliminar corte?',
+            text: `Se eliminará ${proceso.etiqueta}`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#752568',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            setLoading(true);
+            await axios.delete(`/configuracion/procesos/${proceso.id_proceso}`);
+            Swal.fire('Eliminado', 'Corte eliminado correctamente', 'success');
+            fetchProcesos();
+        } catch (error) {
+            console.error('Error deleting proceso:', error);
+            Swal.fire('Error', 'No se pudo eliminar el corte', 'error');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -404,6 +528,16 @@ const ConfiguracionPage = () => {
                     >
                         Conformidad
                     </button>
+                    <button
+                        onClick={() => setActiveTab('cortes')}
+                        className={`px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'cortes'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <Calendar className="w-4 h-4" />
+                        Cortes
+                    </button>
                 </div>
 
                 {/* Content */}
@@ -516,11 +650,19 @@ const ConfiguracionPage = () => {
                                                         <Edit2 className="w-4 h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDeleteUser(user.id)}
-                                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                        title="Eliminar"
+                                                        onClick={() => handleToggleUserStatus(user)}
+                                                        className={`p-1.5 rounded-lg transition-colors ${
+                                                            user.estado === 'Activo'
+                                                                ? 'text-orange-600 hover:bg-orange-50'
+                                                                : 'text-green-600 hover:bg-green-50'
+                                                        }`}
+                                                        title={user.estado === 'Activo' ? 'Desactivar' : 'Activar'}
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
+                                                        {user.estado === 'Activo' ? (
+                                                            <PowerOff className="w-4 h-4" />
+                                                        ) : (
+                                                            <Power className="w-4 h-4" />
+                                                        )}
                                                     </button>
                                                 </td>
                                             </tr>
@@ -717,6 +859,78 @@ const ConfiguracionPage = () => {
                                     </p>
                                 </div>
                             )}
+                        </div>
+                    ) : activeTab === 'cortes' ? (
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-lg font-bold text-[#752568] flex items-center gap-2">
+                                        <Calendar className="w-5 h-5" />
+                                        Mantenimiento de Cortes
+                                    </h2>
+                                    <p className="text-sm text-gray-500">Gestiona el listado de cortes (se usa en el filtro CORTE del dashboard)</p>
+                                </div>
+                                <button
+                                    onClick={() => openProcesoModal()}
+                                    className="px-4 py-2 bg-[#752568] hover:bg-[#5e1d53] text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Nuevo Corte
+                                </button>
+                            </div>
+
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-gray-50 border-b border-gray-100">
+                                            <th className="py-3 px-4 text-sm font-semibold text-gray-700">ID</th>
+                                            <th className="py-3 px-4 text-sm font-semibold text-gray-700">Etiqueta</th>
+                                            <th className="py-3 px-4 text-sm font-semibold text-gray-700">Año</th>
+                                            <th className="py-3 px-4 text-sm font-semibold text-gray-700">Corte</th>
+                                            <th className="py-3 px-4 text-sm font-semibold text-gray-700">Activo</th>
+                                            <th className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {procesos.map((p) => (
+                                            <tr key={p.id_proceso} className="hover:bg-gray-50 transition-colors">
+                                                <td className="py-3 px-4 text-sm text-gray-700">{p.id_proceso}</td>
+                                                <td className="py-3 px-4 text-sm text-gray-900 font-medium">{p.etiqueta}</td>
+                                                <td className="py-3 px-4 text-sm text-gray-700">{p.anio}</td>
+                                                <td className="py-3 px-4 text-sm text-gray-700">{p.corte}</td>
+                                                <td className="py-3 px-4">
+                                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${p.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                        {p.activo ? 'Sí' : 'No'}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-4 text-right space-x-2">
+                                                    <button
+                                                        onClick={() => openProcesoModal(p)}
+                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="Editar"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteProceso(p)}
+                                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Eliminar"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {procesos.length === 0 && !loading && (
+                                            <tr>
+                                                <td colSpan="6" className="py-8 text-center text-gray-500">
+                                                    No hay cortes registrados
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     ) : (
                         <div className="space-y-6">

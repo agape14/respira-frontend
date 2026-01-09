@@ -2,48 +2,33 @@ import axios from 'axios';
 
 // Detectar automáticamente el entorno
 const getBaseURL = () => {
-    const protocol = window.location.protocol; // http: o https:
-    const hostname = window.location.hostname;
-    const port = window.location.port;
-
     // Si estamos en desarrollo (localhost)
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:8082';
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:8000/api';
     }
-
-    // Si estamos en producción (respira.cmp.org.pe)
-    if (hostname.includes('cmp.org.pe')) {
-        // Usar el mismo protocolo, hostname y puerto que el frontend
-        // El alias /api en Apache se encarga de enrutar al backend
-        // Si no hay puerto explícito (puerto 443 para HTTPS o 80 para HTTP), no incluirlo en la URL
-        const portSuffix = port ? `:${port}` : '';
-        return `${protocol}//${hostname}${portSuffix}/api`;
+    
+    // Si estamos en producción con subdominio
+    if (window.location.hostname.includes('cmp.org.pe')) {
+        return 'http://172.17.16.16:84/respira/backend/public/api';
     }
-
-    // Si estamos accediendo por IP directa (172.17.16.16)
-    if (hostname.includes('172.17.16.16')) {
-        // Usar el mismo protocolo, hostname y puerto que el frontend
-        return `${protocol}//${hostname}:${port}/api`;
+    
+    // Si estamos accediendo por IP directa
+    if (window.location.hostname.includes('172.17.16.16')) {
+        return 'http://172.17.16.16:84/respira/backend/public/api';
     }
-
-    // Si estamos en dominio .test (Laragon local en servidor)
-    if (hostname.includes('.test')) {
-        // Usar el mismo protocolo, hostname y puerto que el frontend
-        return `${protocol}//${hostname}:${port}/api`;
-    }
-
+    
     // Fallback a desarrollo
-    return 'http://localhost:8082';
+    return 'http://localhost:8000/api';
 };
 
 const baseURL = getBaseURL();
 
 console.log('🌐 [Axios Config] baseURL:', baseURL);
 console.log('🌐 [Axios Config] hostname:', window.location.hostname);
-console.log('🔒 [Axios Config] protocol:', window.location.protocol);
 
 const axiosInstance = axios.create({
     baseURL: baseURL,
+    // withCredentials: true,  // Comentado para usar Bearer tokens en lugar de cookies
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -80,11 +65,9 @@ axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Token inválido o expirado - responder inmediatamente sin esperar más
-            console.warn('⚠️ Error 401: Token inválido o expirado');
+            // Token inválido o expirado
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
-            localStorage.removeItem('user_menus');
 
             // Evitar bucle infinito de redirección si ya estamos en login
             if (window.location.pathname !== '/login') {

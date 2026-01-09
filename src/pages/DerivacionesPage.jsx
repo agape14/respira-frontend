@@ -191,7 +191,7 @@ const DerivacionesPage = () => {
                     ? 'bg-amber-50 text-amber-700 border border-amber-300' 
                     : null;
             case 'AUDIT':
-                return ['Consumo problemático', 'Dependencia', 'Riesgo'].includes(value)
+                return ['Consumo problemático', 'Dependencia', 'Riesgo', 'Consumo Peligroso'].includes(value)
                     ? 'bg-yellow-50 text-yellow-700 border border-yellow-300'
                     : null;
             case 'ASQ':
@@ -214,8 +214,8 @@ const DerivacionesPage = () => {
         if (type === 'MBI' && value === 'Presencia de burnout') {
             displayText = 'Consumo Peligroso';
         }
-        if (type === 'AUDIT' && ['Consumo problemático', 'Dependencia', 'Riesgo'].includes(value)) {
-            displayText = 'Presencia';
+        if (type === 'AUDIT' && ['Consumo problemático', 'Dependencia', 'Riesgo', 'Consumo Peligroso'].includes(value)) {
+            displayText = 'Consumo Peligroso';
         }
         if (type === 'ASQ') {
             displayText = 'Sí';
@@ -357,8 +357,8 @@ const DerivacionesPage = () => {
                 </div>
 
                 {/* Table */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-visible">
-                    <div className="overflow-x-visible">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
                                 <tr>
@@ -373,7 +373,6 @@ const DerivacionesPage = () => {
                                     <th className="px-3 py-3 text-center text-xs">ASQ<br/>(RSNA)</th>
                                     <th className="px-3 py-3 text-center text-xs">PHQ</th>
                                     <th className="px-3 py-3 text-center text-xs">GAD</th>
-                                    <th className="px-3 py-3 text-center text-xs">MBI</th>
                                     <th className="px-3 py-3 text-center text-xs">AUDIT</th>
                                     <th className="px-3 py-3 text-center text-xs">Contacto</th>
                                     <th className="px-3 py-3 text-xs">Entidad</th>
@@ -385,13 +384,13 @@ const DerivacionesPage = () => {
                             <tbody className="divide-y divide-gray-200">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="16" className="px-4 py-8 text-center text-gray-500">
+                                        <td colSpan="15" className="px-4 py-8 text-center text-gray-500">
                                             Cargando datos...
                                         </td>
                                     </tr>
                                 ) : patients.length === 0 ? (
                                     <tr>
-                                        <td colSpan="16" className="px-4 py-8 text-center text-gray-500">
+                                        <td colSpan="15" className="px-4 py-8 text-center text-gray-500">
                                             No se encontraron pacientes de alto riesgo.
                                         </td>
                                     </tr>
@@ -418,7 +417,6 @@ const DerivacionesPage = () => {
                                             <td className="px-3 py-3 text-center">{renderBadge('ASQ', patient.asq_rsna)}</td>
                                             <td className="px-3 py-3 text-center">{renderBadge('PHQ', patient.phq)}</td>
                                             <td className="px-3 py-3 text-center">{renderBadge('GAD', patient.gad)}</td>
-                                            <td className="px-3 py-3 text-center">{renderBadge('MBI', patient.mbi)}</td>
                                             <td className="px-3 py-3 text-center">{renderBadge('AUDIT', patient.audit)}</td>
                                             <td className="px-3 py-3 text-center relative">
                                                 <button
@@ -536,7 +534,7 @@ const DerivacionesPage = () => {
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-yellow-800">
-                            Pacientes de <strong>{activeTab}</strong> con criterios de derivación: ASQ (RSA/RSNA: Si), PHQ/GAD (Riesgo Alto), MBI (Consumo Peligroso), AUDIT (Presencia).
+                            Pacientes de <strong>{activeTab}</strong> con criterios de derivación: ASQ (RSA/RSNA: Si), PHQ/GAD (Riesgo Alto), AUDIT (Consumo Peligroso).
                         </p>
                     </div>
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-3">

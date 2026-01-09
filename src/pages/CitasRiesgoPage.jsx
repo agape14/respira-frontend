@@ -16,7 +16,8 @@ import {
     CheckCircle,
     Video,
     Trash2,
-    AlertCircle
+    AlertCircle,
+    Loader2
 } from 'lucide-react';
 
 const CitasRiesgoPage = () => {
@@ -516,6 +517,14 @@ const CitasRiesgoPage = () => {
         return hora.substring(0, 5);
     };
 
+    // Helper para convertir fecha a string YYYY-MM-DD sin conversión a UTC
+    const fechaToString = (fecha) => {
+        const year = fecha.getFullYear();
+        const month = String(fecha.getMonth() + 1).padStart(2, '0');
+        const day = String(fecha.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const getPacienteNombre = (id) => {
         const p = pacientes.find(p => p.id == id);
         return p ? p.nombre_completo : '';
@@ -968,7 +977,7 @@ const CitasRiesgoPage = () => {
                                         return <div key={`empty-${index}`} className="border-r border-b border-gray-100 h-32 bg-gray-50/30"></div>;
                                     }
 
-                                    const fechaStr = fecha.toISOString().split('T')[0];
+                                    const fechaStr = fechaToString(fecha);
                                     // Obtener turnos del día y eliminar duplicados por ID
                                     const turnosDiaRaw = citasCalendario[fechaStr] || [];
                                     const turnosDiaUnicos = turnosDiaRaw.filter((turno, index, self) =>
@@ -1142,9 +1151,14 @@ Estado: ${isAgendado ? 'Agendado' : 'Disponible'}`}
                                 <button
                                     onClick={handleConfirmarCita}
                                     disabled={loading}
-                                    className="flex-1 px-4 py-2.5 bg-[#752568] text-white rounded-lg hover:bg-[#5a1d4f] font-medium transition-colors flex items-center justify-center gap-2"
+                                    className="flex-1 px-4 py-2.5 bg-[#752568] text-white rounded-lg hover:bg-[#5a1d4f] font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
-                                    {loading ? 'Confirmando...' : (
+                                    {loading ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Confirmando...
+                                        </>
+                                    ) : (
                                         <>
                                             <CheckCircle className="w-4 h-4" />
                                             Confirmar Cita
