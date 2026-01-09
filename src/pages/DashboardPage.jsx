@@ -52,6 +52,9 @@ const DashboardPage = () => {
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
+        const startTime = performance.now();
+        console.log('🔄 [Dashboard] Iniciando petición dashboard-data...', { filters });
+
         try {
             setLoading(true);
             setError(null);
@@ -62,15 +65,27 @@ const DashboardPage = () => {
                 timeout: 120000 // Timeout de 120 segundos (primera carga puede ser lenta, pero el caché ayudará)
             });
             
+            const elapsed = Math.round(performance.now() - startTime);
+            console.log(`✅ [Dashboard] Respuesta recibida en ${elapsed}ms`, {
+                dataSize: JSON.stringify(response.data).length,
+                hasData: !!response.data
+            });
+            
             // Verificar que el componente aún está montado y no se canceló
             if (!abortController.signal.aborted && isMountedRef.current) {
                 setDashboardData(response.data);
+                console.log('✅ [Dashboard] Datos actualizados en el estado');
             }
         } catch (err) {
+            const elapsed = Math.round(performance.now() - startTime);
+            
             // Ignorar errores si la petición fue cancelada
             if (err.name === 'AbortError' || err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+                console.log(`⚠️ [Dashboard] Petición cancelada después de ${elapsed}ms`);
                 return;
             }
+            
+            console.error(`❌ [Dashboard] Error después de ${elapsed}ms:`, err);
             
             if (err.response?.status === 401) {
                 setError('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
@@ -80,7 +95,6 @@ const DashboardPage = () => {
             } else {
                 setError('Error al cargar los datos del dashboard: ' + (err.response?.data?.message || err.message));
             }
-            console.error('Error:', err);
         } finally {
             // Solo actualizar loading si no fue cancelado y el componente está montado
             if (!abortController.signal.aborted && isMountedRef.current) {
