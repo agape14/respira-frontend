@@ -38,9 +38,10 @@ const getBaseURL = () => {
 
 const baseURL = getBaseURL();
 
-console.log('🌐 [Axios Config] baseURL:', baseURL);
-console.log('🌐 [Axios Config] hostname:', window.location.hostname);
-console.log('🔒 [Axios Config] protocol:', window.location.protocol);
+// Logs removidos para producción
+// console.log('🌐 [Axios Config] baseURL:', baseURL);
+// console.log('🌐 [Axios Config] hostname:', window.location.hostname);
+// console.log('🔒 [Axios Config] protocol:', window.location.protocol);
 
 const axiosInstance = axios.create({
     baseURL: baseURL,
@@ -54,23 +55,26 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('auth_token');
-        console.log('🔧 [Interceptor Request]', {
-            url: config.url,
-            token: token ? token.substring(0, 20) + '...' : 'NO TOKEN',
-            hasToken: !!token
-        });
+        // Logs removidos para producción
+        // console.log('🔧 [Interceptor Request]', {
+        //     url: config.url,
+        //     token: token ? token.substring(0, 20) + '...' : 'NO TOKEN',
+        //     hasToken: !!token
+        // });
 
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-            console.log('✅ Header Authorization agregado');
-        } else {
-            console.warn('⚠️ NO HAY TOKEN EN LOCALSTORAGE');
+            // console.log('✅ Header Authorization agregado');
         }
+        // else {
+        //     console.warn('⚠️ NO HAY TOKEN EN LOCALSTORAGE');
+        // }
 
         return config;
     },
     (error) => {
-        console.error('❌ Error en interceptor request:', error);
+        // Log removido para producción
+        // console.error('❌ Error en interceptor request:', error);
         return Promise.reject(error);
     }
 );
@@ -81,7 +85,8 @@ axiosInstance.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             // Token inválido o expirado - responder inmediatamente sin esperar más
-            console.warn('⚠️ Error 401: Token inválido o expirado');
+            // Log removido para producción
+            // console.warn('⚠️ Error 401: Token inválido o expirado');
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
             localStorage.removeItem('user_menus');

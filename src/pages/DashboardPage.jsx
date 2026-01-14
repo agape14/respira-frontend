@@ -31,7 +31,8 @@ const DashboardPage = () => {
             setDepartamentos(response.data?.departamentos || []);
             setProcesos(response.data?.procesos || []);
         } catch (err) {
-            console.error('Error al cargar filtros:', err);
+            // Log removido para producción
+            // console.error('Error al cargar filtros:', err);
         }
     }, []);
 
@@ -54,7 +55,8 @@ const DashboardPage = () => {
         abortControllerRef.current = abortController;
 
         const startTime = performance.now();
-        console.log('🔄 [Dashboard] Iniciando petición dashboard-data...', { filters });
+        // Log removido para producción
+        // console.log('🔄 [Dashboard] Iniciando petición dashboard-data...', { filters });
 
         try {
             setLoading(true);
@@ -67,26 +69,29 @@ const DashboardPage = () => {
             });
             
             const elapsed = Math.round(performance.now() - startTime);
-            console.log(`✅ [Dashboard] Respuesta recibida en ${elapsed}ms`, {
-                dataSize: JSON.stringify(response.data).length,
-                hasData: !!response.data
-            });
+            // Logs removidos para producción
+            // console.log(`✅ [Dashboard] Respuesta recibida en ${elapsed}ms`, {
+            //     dataSize: JSON.stringify(response.data).length,
+            //     hasData: !!response.data
+            // });
             
             // Verificar que el componente aún está montado y no se canceló
             if (!abortController.signal.aborted && isMountedRef.current) {
                 setDashboardData(response.data);
-                console.log('✅ [Dashboard] Datos actualizados en el estado');
+                // console.log('✅ [Dashboard] Datos actualizados en el estado');
             }
         } catch (err) {
             const elapsed = Math.round(performance.now() - startTime);
             
             // Ignorar errores si la petición fue cancelada
             if (err.name === 'AbortError' || err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
-                console.log(`⚠️ [Dashboard] Petición cancelada después de ${elapsed}ms`);
+                // Log removido para producción
+                // console.log(`⚠️ [Dashboard] Petición cancelada después de ${elapsed}ms`);
                 return;
             }
             
-            console.error(`❌ [Dashboard] Error después de ${elapsed}ms:`, err);
+            // Log removido para producción
+            // console.error(`❌ [Dashboard] Error después de ${elapsed}ms:`, err);
             
             if (err.response?.status === 401) {
                 setError('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
@@ -124,7 +129,8 @@ const DashboardPage = () => {
         // Solo hacer la carga inicial una vez (incluye verificación para StrictMode)
         if (!initialLoadDoneRef.current) {
             initialLoadDoneRef.current = true;
-            console.log('🔄 [Dashboard] Carga inicial iniciada');
+            // Log removido para producción
+            // console.log('🔄 [Dashboard] Carga inicial iniciada');
             fetchFiltros();
             fetchDashboardData();
         }
@@ -150,7 +156,8 @@ const DashboardPage = () => {
         
         // Solo ejecutar si la carga inicial ya se completó Y los filtros realmente cambiaron
         if (initialLoadDoneRef.current) {
-            console.log('🔄 [Dashboard] Filtros cambiaron, recargando datos...', filters);
+            // Log removido para producción
+            // console.log('🔄 [Dashboard] Filtros cambiaron, recargando datos...', filters);
             fetchDashboardData();
         }
     }, [filters, fetchDashboardData]);

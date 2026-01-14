@@ -49,7 +49,8 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (nombreUsuario, password) => {
         try {
-            console.log('🔵 Iniciando login...');
+            // Logs removidos para producción
+            // console.log('🔵 Iniciando login...');
 
             // Hacer login directamente (sin CSRF cookie ya que usamos Bearer tokens)
             const response = await axios.post('/login', {
@@ -57,27 +58,31 @@ export const AuthProvider = ({ children }) => {
                 password
             });
 
-            console.log('🟢 Respuesta del login:', response.data);
+            // Logs removidos para producción
+            // console.log('🟢 Respuesta del login:', response.data);
 
             const { access_token, user: userData } = response.data;
 
-            console.log('🔑 Token recibido:', access_token ? access_token.substring(0, 20) + '...' : 'NO TOKEN');
+            // Logs removidos para producción
+            // console.log('🔑 Token recibido:', access_token ? access_token.substring(0, 20) + '...' : 'NO TOKEN');
 
             // Guardar token y usuario
             localStorage.setItem('auth_token', access_token);
             localStorage.setItem('user', JSON.stringify(userData));
             setUser(userData);
 
-            console.log('✅ Token guardado en localStorage');
-            console.log('📦 Token almacenado:', localStorage.getItem('auth_token').substring(0, 20) + '...');
+            // Logs removidos para producción
+            // console.log('✅ Token guardado en localStorage');
+            // console.log('📦 Token almacenado:', localStorage.getItem('auth_token').substring(0, 20) + '...');
 
             // Cargar menús inmediatamente después del login
-            console.log('📋 Cargando menús del usuario...');
+            // console.log('📋 Cargando menús del usuario...');
             await loadUserMenus();
 
             return { success: true };
         } catch (error) {
-            console.error('🔴 Error en login:', error.response?.data || error.message);
+            // Log removido para producción
+            // console.error('🔴 Error en login:', error.response?.data || error.message);
             const message = error.response?.data?.message || 'Error al iniciar sesión';
             return { success: false, error: message };
         }
