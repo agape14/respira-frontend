@@ -907,60 +907,62 @@ const CitasRiesgoPage = () => {
                                     <Trash2 className="w-4 h-4" />
                                     Eliminar Todas las Programaciones
                                 </button>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => setMesActual(new Date(mesActual.setMonth(mesActual.getMonth() - 1)))} className="p-1 hover:bg-gray-100 rounded">
-                                        <ChevronLeft className="w-5 h-5" />
+                                <div className="flex flex-wrap items-center justify-center gap-2">
+                                    <button onClick={() => setMesActual(new Date(mesActual.setMonth(mesActual.getMonth() - 1)))} className="p-2 hover:bg-gray-100 rounded border border-gray-200">
+                                        <ChevronLeft className="w-4 h-4" />
                                     </button>
-                                    <span className="font-medium min-w-[150px] text-center capitalize">
+                                    <span className="font-semibold px-3 py-2 text-sm md:text-base text-center capitalize">
                                         {mesActual.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })}
                                     </span>
-                                    <button onClick={() => setMesActual(new Date(mesActual.setMonth(mesActual.getMonth() + 1)))} className="p-1 hover:bg-gray-100 rounded">
-                                        <ChevronRight className="w-5 h-5" />
+                                    <button onClick={() => setMesActual(new Date(mesActual.setMonth(mesActual.getMonth() + 1)))} className="p-2 hover:bg-gray-100 rounded border border-gray-200">
+                                        <ChevronRight className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
                         </div>
 
                         {/* Filtros Calendario */}
-                        <div className="flex gap-4 mb-6 bg-gray-50 p-4 rounded-lg">
-                            <div className="flex-1">
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Filtrar por Terapeuta</label>
-                                <select
-                                    value={filtroTerapeutaCalendario}
-                                    onChange={(e) => setFiltroTerapeutaCalendario(e.target.value)}
-                                    className="w-full text-sm border-gray-300 rounded-md p-2"
-                                >
-                                    <option value="todos">Todos los terapeutas</option>
-                                    {terapeutas.map(t => <option key={t.id} value={t.id}>{t.nombre_completo}</option>)}
-                                </select>
-                            </div>
-                            <div className="flex-1">
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Filtrar por Paciente</label>
-                                <select
-                                    value={filtroPacienteCalendario}
-                                    onChange={(e) => setFiltroPacienteCalendario(e.target.value)}
-                                    className="w-full text-sm border-gray-300 rounded-md p-2"
-                                >
-                                    <option value="todos">Todos los pacientes</option>
-                                    {pacientes.map(p => <option key={p.id} value={p.id}>{p.nombre_completo}</option>)}
-                                </select>
-                            </div>
-                            <div className="flex-1">
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Mostrar Horarios</label>
-                                <select
-                                    value={filtroEstadoCalendario}
-                                    onChange={(e) => setFiltroEstadoCalendario(e.target.value)}
-                                    className="w-full text-sm border-gray-300 rounded-md p-2"
-                                >
-                                    <option value="todos">Todos</option>
-                                    <option value="agendados">Solo Agendados</option>
-                                    <option value="disponibles">Solo Disponibles</option>
-                                </select>
+                        <div className="mb-6 bg-gray-50 p-4 rounded-lg space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Filtrar por Terapeuta</label>
+                                    <select
+                                        value={filtroTerapeutaCalendario}
+                                        onChange={(e) => setFiltroTerapeutaCalendario(e.target.value)}
+                                        className="w-full text-sm border-gray-300 rounded-md p-2"
+                                    >
+                                        <option value="todos">Todos los terapeutas</option>
+                                        {terapeutas.map(t => <option key={t.id} value={t.id}>{t.nombre_completo}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Filtrar por Paciente</label>
+                                    <select
+                                        value={filtroPacienteCalendario}
+                                        onChange={(e) => setFiltroPacienteCalendario(e.target.value)}
+                                        className="w-full text-sm border-gray-300 rounded-md p-2"
+                                    >
+                                        <option value="todos">Todos los pacientes</option>
+                                        {pacientes.map(p => <option key={p.id} value={p.id}>{p.nombre_completo}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Mostrar Horarios</label>
+                                    <select
+                                        value={filtroEstadoCalendario}
+                                        onChange={(e) => setFiltroEstadoCalendario(e.target.value)}
+                                        className="w-full text-sm border-gray-300 rounded-md p-2"
+                                    >
+                                        <option value="todos">Todos</option>
+                                        <option value="agendados">Solo Agendados</option>
+                                        <option value="disponibles">Solo Disponibles</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Grid Calendario */}
-                        <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                        {/* Grid Calendario - Vista Desktop */}
+                        <div className="hidden md:block border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                             {/* Días de la semana */}
                             <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
                                 {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((dia) => (
@@ -1009,7 +1011,7 @@ const CitasRiesgoPage = () => {
                                                     return (
                                                         <div
                                                             key={turno.id}
-                                                            className={`text-[10px] px-1.5 py-0.5 rounded truncate border ${isAgendado
+                                                            className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center justify-between gap-1 ${isAgendado
                                                                 ? `${colorTerapeuta.bg} ${colorTerapeuta.text} ${colorTerapeuta.border}`
                                                                 : 'bg-orange-50 text-orange-800 border border-orange-100'
                                                                 }`}
@@ -1018,7 +1020,21 @@ Terapeuta: ${turno.terapeuta || 'No asignado'}
 Paciente: ${turno.paciente_nombre || 'Sin asignar'}
 Estado: ${isAgendado ? 'Agendado' : 'Disponible'}`}
                                                         >
-                                                            <span className="font-medium">{formatearHora(turno.hora_inicio)}</span> {turno.terapeuta ? turno.terapeuta.split(' ')[0] : 'Sin terapeuta'}
+                                                            <span className="truncate">
+                                                                <span className="font-medium">{formatearHora(turno.hora_inicio)}</span> {turno.terapeuta ? turno.terapeuta.split(' ')[0] : 'Sin terapeuta'}
+                                                            </span>
+                                                            {turno.video_enlace && (
+                                                                <a
+                                                                    href={turno.video_enlace}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    className="flex-shrink-0 hover:opacity-70"
+                                                                    title="Abrir enlace de reunión virtual"
+                                                                >
+                                                                    <Video className="w-2.5 h-2.5" />
+                                                                </a>
+                                                            )}
                                                         </div>
                                                     );
                                                 })}
@@ -1035,6 +1051,143 @@ Estado: ${isAgendado ? 'Agendado' : 'Disponible'}`}
                                     );
                                 })}
                             </div>
+                        </div>
+
+                        {/* Vista Vertical para Móviles */}
+                        <div className="md:hidden space-y-3">
+                            {getDiasDelMes().filter(fecha => fecha !== null).map((fecha) => {
+                                const fechaStr = fechaToString(fecha);
+                                // Obtener turnos del día y eliminar duplicados por ID
+                                const turnosDiaRaw = citasCalendario[fechaStr] || [];
+                                const turnosDiaUnicos = turnosDiaRaw.filter((turno, index, self) =>
+                                    index === self.findIndex(t => t.id === turno.id)
+                                );
+
+                                // Aplicar filtro de estado (agendados/disponibles)
+                                let turnosDia = turnosDiaUnicos;
+                                if (filtroEstadoCalendario === 'agendados') {
+                                    turnosDia = turnosDiaUnicos.filter(t => estaAgendado(t));
+                                } else if (filtroEstadoCalendario === 'disponibles') {
+                                    turnosDia = turnosDiaUnicos.filter(t => !estaAgendado(t));
+                                }
+
+                                const esHoy = fecha.toDateString() === new Date().toDateString();
+                                const nombreDia = fecha.toLocaleDateString('es-PE', { weekday: 'short' }).charAt(0).toUpperCase() + 
+                                                fecha.toLocaleDateString('es-PE', { weekday: 'short' }).slice(1);
+
+                                // Solo mostrar días que tienen turnos o el día actual
+                                if (turnosDia.length === 0 && !esHoy) return null;
+
+                                return (
+                                    <div
+                                        key={fecha.toString()}
+                                        className={`border rounded-lg overflow-hidden shadow-sm ${
+                                            esHoy ? 'border-[#752568] border-2 bg-purple-50/30' : 'border-gray-200 bg-white'
+                                        }`}
+                                    >
+                                        {/* Encabezado del día */}
+                                        <div className={`flex items-center justify-between px-4 py-3 border-b ${
+                                            esHoy ? 'bg-purple-100 border-purple-200' : 'bg-gray-50 border-gray-200'
+                                        }`}>
+                                            <div className="flex items-center gap-3">
+                                                <div className={`text-2xl font-bold ${esHoy ? 'text-[#752568]' : 'text-gray-700'}`}>
+                                                    {fecha.getDate()}
+                                                </div>
+                                                <div>
+                                                    <div className={`text-sm font-semibold ${esHoy ? 'text-[#752568]' : 'text-gray-700'}`}>
+                                                        {nombreDia}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">
+                                                        {fecha.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className={`text-xs font-medium px-2 py-1 rounded ${
+                                                esHoy ? 'bg-[#752568] text-white' : 'bg-gray-200 text-gray-600'
+                                            }`}>
+                                                {turnosDia.length} {turnosDia.length === 1 ? 'turno' : 'turnos'}
+                                            </div>
+                                        </div>
+
+                                        {/* Lista de turnos */}
+                                        {turnosDia.length > 0 ? (
+                                            <div className="p-3 space-y-2">
+                                                {turnosDia.map((turno) => {
+                                                    const colorTerapeuta = obtenerColorTerapeuta(turno.terapeuta);
+                                                    const isAgendado = estaAgendado(turno) && turno.paciente_nombre;
+                                                    return (
+                                                        <div
+                                                            key={turno.id}
+                                                            className={`p-3 rounded-lg border ${
+                                                                isAgendado
+                                                                    ? `${colorTerapeuta.bg} ${colorTerapeuta.border} border-2`
+                                                                    : 'bg-orange-50 border border-orange-200'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <div className="flex items-center gap-2 flex-1">
+                                                                    <Clock className={`w-4 h-4 flex-shrink-0 ${
+                                                                        isAgendado ? colorTerapeuta.text : 'text-orange-700'
+                                                                    }`} />
+                                                                    <span className={`font-semibold text-sm ${
+                                                                        isAgendado ? colorTerapeuta.text : 'text-orange-800'
+                                                                    }`}>
+                                                                        {formatearHora(turno.hora_inicio)} - {formatearHora(turno.hora_fin)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    {turno.video_enlace && (
+                                                                        <a
+                                                                            href={turno.video_enlace}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            className={`p-1.5 rounded-full ${
+                                                                                isAgendado ? 'bg-white/80' : 'bg-orange-100'
+                                                                            } hover:opacity-70 transition-opacity`}
+                                                                            title="Abrir enlace de reunión virtual"
+                                                                        >
+                                                                            <Video className="w-4 h-4 text-[#752568]" />
+                                                                        </a>
+                                                                    )}
+                                                                    <span className={`text-xs font-medium px-2 py-1 rounded ${
+                                                                        isAgendado ? 'bg-green-600 text-white' : 'bg-orange-200 text-orange-800'
+                                                                    }`}>
+                                                                        {isAgendado ? 'Agendado' : 'Disponible'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            {turno.terapeuta && (
+                                                                <div className="mt-2 flex items-center gap-2">
+                                                                    <User className={`w-3.5 h-3.5 ${
+                                                                        isAgendado ? colorTerapeuta.text : 'text-orange-700'
+                                                                    }`} />
+                                                                    <span className={`text-sm ${
+                                                                        isAgendado ? colorTerapeuta.text : 'text-orange-800'
+                                                                    }`}>
+                                                                        {turno.terapeuta}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            {isAgendado && turno.paciente_nombre && (
+                                                                <div className="mt-1 flex items-center gap-2 ml-5">
+                                                                    <span className={`text-xs ${colorTerapeuta.text}`}>
+                                                                        Paciente: <span className="font-semibold">{turno.paciente_nombre}</span>
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="p-6 text-center text-gray-500 text-sm">
+                                                No hay turnos programados
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         {/* Leyenda y Estadísticas */}

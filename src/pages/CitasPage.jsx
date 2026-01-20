@@ -1100,9 +1100,10 @@ const CitasPage = () => {
                                 </p>
                             </div>
 
-                            {/* Filtro de terapeuta */}
-                            <div className="mb-6 flex items-center gap-4">
-                                <div className="w-64">
+                            {/* Filtro de terapeuta y controles */}
+                            <div className="mb-6 space-y-4">
+                                {/* Filtro de terapeuta */}
+                                <div className="w-full md:w-64">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Terapeuta:
                                     </label>
@@ -1118,10 +1119,11 @@ const CitasPage = () => {
                                     </select>
                                 </div>
 
-                                <div className="flex-1 flex justify-end items-end gap-2">
+                                {/* Controles de navegación del calendario */}
+                                <div className="flex flex-wrap items-center justify-center md:justify-end gap-2">
                                     <button
                                         onClick={handleEliminarTodasProgramaciones}
-                                        className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1 border border-red-200 mr-2 hidden"
+                                        className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1 border border-red-200 hidden"
                                         title="Eliminar programación del mes"
                                     >
                                         <Trash2 className="w-4 h-4" />
@@ -1129,28 +1131,28 @@ const CitasPage = () => {
                                     </button>
                                     <button
                                         onClick={() => cambiarMes(-1)}
-                                        className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg flex items-center gap-1 border border-gray-200"
+                                        className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg flex items-center gap-1 border border-gray-200 text-sm"
                                     >
                                         <ChevronLeft className="w-4 h-4" />
-                                        Anterior
+                                        <span className="hidden sm:inline">Anterior</span>
                                     </button>
 
-                                    <div className="px-4 py-2 font-semibold text-gray-900 min-w-[150px] text-center">
+                                    <div className="px-3 md:px-4 py-2 font-semibold text-gray-900 text-sm md:text-base text-center">
                                         {mesActual.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' }).charAt(0).toUpperCase() +
                                             mesActual.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' }).slice(1)}
                                     </div>
 
                                     <button
                                         onClick={() => cambiarMes(1)}
-                                        className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg flex items-center gap-1 border border-gray-200"
+                                        className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg flex items-center gap-1 border border-gray-200 text-sm"
                                     >
-                                        Siguiente
+                                        <span className="hidden sm:inline">Siguiente</span>
                                         <ChevronRight className="w-4 h-4" />
                                     </button>
 
                                     <button
                                         onClick={irAHoy}
-                                        className="ml-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-medium"
+                                        className="px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-medium"
                                     >
                                         Hoy
                                     </button>
@@ -1165,7 +1167,8 @@ const CitasPage = () => {
                                 </div>
                             ) : (
                                 <>
-                                    <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                                    {/* Vista Grid para Desktop */}
+                                    <div className="hidden md:block border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                                         {/* Días de la semana */}
                                         <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
                                             {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((dia) => (
@@ -1201,13 +1204,27 @@ const CitasPage = () => {
                                                                 return (
                                                                     <div
                                                                         key={turno.id}
-                                                                        className={`text-[10px] px-1.5 py-0.5 rounded truncate border ${parseInt(turno.agendado) === 1
+                                                                        className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center justify-between gap-1 ${parseInt(turno.agendado) === 1
                                                                             ? `${colorTerapeuta.bg} ${colorTerapeuta.text} ${colorTerapeuta.border}`
                                                                             : 'bg-orange-50 text-orange-800 border border-orange-100'
                                                                             }`}
                                                                         title={`${turno.terapeuta} - ${formatearHora(turno.hora_inicio)}`}
                                                                     >
-                                                                        <span className="font-medium">{formatearHora(turno.hora_inicio)}</span> {turno.terapeuta.split(' ')[0]}
+                                                                        <span className="truncate">
+                                                                            <span className="font-medium">{formatearHora(turno.hora_inicio)}</span> {turno.terapeuta.split(' ')[0]}
+                                                                        </span>
+                                                                        {turno.video_enlace && (
+                                                                            <a
+                                                                                href={turno.video_enlace}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                className="flex-shrink-0 hover:opacity-70"
+                                                                                title="Abrir enlace de reunión virtual"
+                                                                            >
+                                                                                <Video className="w-2.5 h-2.5" />
+                                                                            </a>
+                                                                        )}
                                                                     </div>
                                                                 );
                                                             })}
@@ -1224,6 +1241,128 @@ const CitasPage = () => {
                                                 );
                                             })}
                                         </div>
+                                    </div>
+
+                                    {/* Vista Vertical para Móviles */}
+                                    <div className="md:hidden space-y-3">
+                                        {getDiasDelMes().filter(fecha => fecha !== null).map((fecha) => {
+                                            const fechaStr = fecha.toISOString().split('T')[0];
+                                            const turnosDia = calendarioData[fechaStr] || [];
+                                            const esHoy = fecha.toDateString() === new Date().toDateString();
+                                            const nombreDia = fecha.toLocaleDateString('es-PE', { weekday: 'short' }).charAt(0).toUpperCase() + 
+                                                            fecha.toLocaleDateString('es-PE', { weekday: 'short' }).slice(1);
+
+                                            // Solo mostrar días que tienen turnos o el día actual
+                                            if (turnosDia.length === 0 && !esHoy) return null;
+
+                                            return (
+                                                <div
+                                                    key={fecha.toString()}
+                                                    className={`border rounded-lg overflow-hidden shadow-sm ${
+                                                        esHoy ? 'border-[#752568] border-2 bg-purple-50/30' : 'border-gray-200 bg-white'
+                                                    }`}
+                                                >
+                                                    {/* Encabezado del día */}
+                                                    <div className={`flex items-center justify-between px-4 py-3 border-b ${
+                                                        esHoy ? 'bg-purple-100 border-purple-200' : 'bg-gray-50 border-gray-200'
+                                                    }`}>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`text-2xl font-bold ${esHoy ? 'text-[#752568]' : 'text-gray-700'}`}>
+                                                                {fecha.getDate()}
+                                                            </div>
+                                                            <div>
+                                                                <div className={`text-sm font-semibold ${esHoy ? 'text-[#752568]' : 'text-gray-700'}`}>
+                                                                    {nombreDia}
+                                                                </div>
+                                                                <div className="text-xs text-gray-500">
+                                                                    {fecha.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className={`text-xs font-medium px-2 py-1 rounded ${
+                                                            esHoy ? 'bg-[#752568] text-white' : 'bg-gray-200 text-gray-600'
+                                                        }`}>
+                                                            {turnosDia.length} {turnosDia.length === 1 ? 'turno' : 'turnos'}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Lista de turnos */}
+                                                    {turnosDia.length > 0 ? (
+                                                        <div className="p-3 space-y-2">
+                                                            {turnosDia.map((turno) => {
+                                                                const colorTerapeuta = obtenerColorTerapeuta(turno.terapeuta);
+                                                                const isAgendado = parseInt(turno.agendado) === 1;
+                                                                return (
+                                                                    <div
+                                                                        key={turno.id}
+                                                                        className={`p-3 rounded-lg border ${
+                                                                            isAgendado
+                                                                                ? `${colorTerapeuta.bg} ${colorTerapeuta.border} border-2`
+                                                                                : 'bg-orange-50 border border-orange-200'
+                                                                        }`}
+                                                                    >
+                                                                        <div className="flex items-center justify-between gap-2">
+                                                                            <div className="flex items-center gap-2 flex-1">
+                                                                                <Clock className={`w-4 h-4 flex-shrink-0 ${
+                                                                                    isAgendado ? colorTerapeuta.text : 'text-orange-700'
+                                                                                }`} />
+                                                                                <span className={`font-semibold text-sm ${
+                                                                                    isAgendado ? colorTerapeuta.text : 'text-orange-800'
+                                                                                }`}>
+                                                                                    {formatearHora(turno.hora_inicio)} - {formatearHora(turno.hora_fin)}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2">
+                                                                                {turno.video_enlace && (
+                                                                                    <a
+                                                                                        href={turno.video_enlace}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        onClick={(e) => e.stopPropagation()}
+                                                                                        className={`p-1.5 rounded-full ${
+                                                                                            isAgendado ? 'bg-white/80' : 'bg-orange-100'
+                                                                                        } hover:opacity-70 transition-opacity`}
+                                                                                        title="Abrir enlace de reunión virtual"
+                                                                                    >
+                                                                                        <Video className="w-4 h-4 text-[#752568]" />
+                                                                                    </a>
+                                                                                )}
+                                                                                <span className={`text-xs font-medium px-2 py-1 rounded ${
+                                                                                    isAgendado ? 'bg-green-600 text-white' : 'bg-orange-200 text-orange-800'
+                                                                                }`}>
+                                                                                    {isAgendado ? 'Agendado' : 'Disponible'}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="mt-2 flex items-center gap-2">
+                                                                            <User className={`w-3.5 h-3.5 ${
+                                                                                isAgendado ? colorTerapeuta.text : 'text-orange-700'
+                                                                            }`} />
+                                                                            <span className={`text-sm ${
+                                                                                isAgendado ? colorTerapeuta.text : 'text-orange-800'
+                                                                            }`}>
+                                                                                {turno.terapeuta}
+                                                                            </span>
+                                                                        </div>
+                                                                        {isAgendado && turno.paciente && (
+                                                                            <div className="mt-1 flex items-center gap-2 ml-5">
+                                                                                <span className={`text-xs ${colorTerapeuta.text}`}>
+                                                                                    Paciente: <span className="font-semibold">{turno.paciente}</span>
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="p-6 text-center text-gray-500 text-sm">
+                                                            No hay turnos programados
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
 
                                     {/* Leyenda y Estadísticas */}
