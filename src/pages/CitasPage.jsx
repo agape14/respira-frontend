@@ -12,7 +12,8 @@ import {
     Filter,
     Search,
     X,
-    Video
+    Video,
+    Edit
 } from 'lucide-react';
 
 const CitasPage = () => {
@@ -59,6 +60,11 @@ const CitasPage = () => {
     const [detalleDia, setDetalleDia] = useState({ fecha: null, turnos: [] });
     const [filtroTerapeutaModal, setFiltroTerapeutaModal] = useState('todos');
     const [coloresAsignados, setColoresAsignados] = useState({});
+    
+    // Estados para modal de actualizar enlace
+    const [showModalActualizarEnlace, setShowModalActualizarEnlace] = useState(false);
+    const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
+    const [nuevoEnlace, setNuevoEnlace] = useState('');
 
     // Colores predefinidos para terapeutas
     const coloresTerapeutas = [
@@ -502,6 +508,85 @@ const CitasPage = () => {
         setShowDetalleDiaModal(true);
     };
 
+    const handleAbrirModalActualizarEnlace = (turno) => {
+        setTurnoSeleccionado(turno);
+        setNuevoEnlace(turno.video_enlace || '');
+        setShowModalActualizarEnlace(true);
+    };
+
+    const handleActualizarEnlace = async () => {
+        if (!nuevoEnlace.trim()) {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+            Toast.fire({
+                icon: 'error',
+                title: 'Debe ingresar un enlace válido'
+            });
+            return;
+        }
+
+        // Validar que el turno tenga cita_id
+        if (!turnoSeleccionado.cita_id) {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+            Toast.fire({
+                icon: 'error',
+                title: 'No se pudo identificar la cita asociada al turno'
+            });
+            return;
+        }
+
+        try {
+            // Actualizar el enlace usando el cita_id que ya viene en la respuesta del turno
+            const updateResponse = await axios.put(`/citas/${turnoSeleccionado.cita_id}/video-enlace`, {
+                video_enlace: nuevoEnlace
+            });
+
+            if (updateResponse.data.success) {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Enlace actualizado exitosamente'
+                });
+
+                // Cerrar modal y recargar datos
+                setShowModalActualizarEnlace(false);
+                setTurnoSeleccionado(null);
+                setNuevoEnlace('');
+                cargarTurnos(paginacion.current_page);
+            }
+        } catch (err) {
+            console.error('Error al actualizar enlace:', err);
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+            Toast.fire({
+                icon: 'error',
+                title: err.response?.data?.message || 'Error al actualizar el enlace'
+            });
+        }
+    };
+
     useEffect(() => {
         if (activeTab === 'calendario') {
             cargarCalendario();
@@ -921,13 +1006,26 @@ const CitasPage = () => {
                                                             )}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                            <button
-                                                                onClick={() => handleEliminarTurno(turno)}
-                                                                className={`text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors ${parseInt(turno.agendado) === 1 ? 'hidden' : ''}`}
-                                                                title="Eliminar turno"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                {parseInt(turno.agendado) === 1 && (
+                                                                    <button
+                                                                        onClick={() => handleAbrirModalActualizarEnlace(turno)}
+                                                                        className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition-colors"
+                                                                        title="Actualizar enlace de reunión virtual"
+                                                                    >
+                                                                        <Edit className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                                {parseInt(turno.agendado) === 0 && (
+                                                                    <button
+                                                                        onClick={() => handleEliminarTurno(turno)}
+                                                                        className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
+                                                                        title="Eliminar turno"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -1298,6 +1396,85 @@ const CitasPage = () => {
                     </div>
                 );
             })()}
+
+            {/* Modal Actualizar Enlace de Reunión Virtual */}
+            {showModalActualizarEnlace && turnoSeleccionado && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+                        <div className="p-6 border-b border-gray-100">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="text-xl font-bold text-[#752568] flex items-center gap-2">
+                                        <Video className="w-5 h-5" />
+                                        Actualizar Enlace de Reunión Virtual
+                                    </h3>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        Ingrese el enlace de Teams o Google Meet
+                                    </p>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        setShowModalActualizarEnlace(false);
+                                        setTurnoSeleccionado(null);
+                                        setNuevoEnlace('');
+                                    }} 
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-6">
+                            {/* Información del turno */}
+                            <div className="bg-gray-50 rounded-lg p-4 mb-4 text-sm border border-gray-200">
+                                <p className="mb-1"><strong>Terapeuta:</strong> {turnoSeleccionado.terapeuta}</p>
+                                <p className="mb-1"><strong>Paciente:</strong> {turnoSeleccionado.paciente || 'N/A'}</p>
+                                <p className="mb-1"><strong>Fecha:</strong> {formatearFecha(turnoSeleccionado.fecha)}</p>
+                                <p className="mb-0">
+                                    <strong>Horario:</strong> {formatearHora(turnoSeleccionado.hora_inicio)} - {formatearHora(turnoSeleccionado.hora_fin)}
+                                </p>
+                            </div>
+
+                            {/* Campo para ingresar el enlace */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Enlace de la Reunión Virtual <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="url"
+                                    value={nuevoEnlace}
+                                    onChange={(e) => setNuevoEnlace(e.target.value)}
+                                    placeholder="https://teams.microsoft.com/... o https://meet.google.com/..."
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#752568] focus:border-transparent"
+                                />
+                                <p className="text-xs text-gray-500 mt-2">
+                                    Puede ingresar un enlace de Microsoft Teams o Google Meet
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-gray-50 border-t border-gray-200 flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowModalActualizarEnlace(false);
+                                    setTurnoSeleccionado(null);
+                                    setNuevoEnlace('');
+                                }}
+                                className="flex-1 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleActualizarEnlace}
+                                className="flex-1 px-4 py-2.5 bg-[#752568] text-white rounded-lg hover:bg-[#5a1d4f] font-medium transition-colors"
+                            >
+                                Actualizar Enlace
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </MainLayout >
     );
