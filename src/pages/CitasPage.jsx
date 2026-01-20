@@ -1196,7 +1196,7 @@ const CitasPage = () => {
                                                             {fecha.getDate()}
                                                         </div>
                                                         <div className="space-y-1">
-                                                            {turnosDia.slice(0, 15).map((turno) => {
+                                                            {turnosDia.slice(0, 5).map((turno) => {
                                                                 const colorTerapeuta = obtenerColorTerapeuta(turno.terapeuta);
                                                                 return (
                                                                     <div
@@ -1211,12 +1211,12 @@ const CitasPage = () => {
                                                                     </div>
                                                                 );
                                                             })}
-                                                            {turnosDia.length > 15 && (
+                                                            {turnosDia.length > 5 && (
                                                                 <button
                                                                     onClick={() => handleVerDetalleDia(fechaStr, turnosDia)}
                                                                     className="text-[10px] text-[#752568] font-medium text-center w-full hover:underline cursor-pointer"
                                                                 >
-                                                                    +{turnosDia.length - 15} más
+                                                                    +{turnosDia.length - 5} más
                                                                 </button>
                                                             )}
                                                         </div>
