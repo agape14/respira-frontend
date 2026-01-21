@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import MainLayout from '../components/layouts/MainLayout';
 import Swal from 'sweetalert2';
+import Select from 'react-select';
 import {
     Calendar,
     Clock,
@@ -610,6 +611,57 @@ const CitasRiesgoPage = () => {
         return diasArray;
     };
 
+    // Configuración de react-select para pacientes
+    const pacientesOptions = pacientes.map(p => ({
+        value: p.id,
+        label: `${p.nombre_completo} - CMP: ${p.cmp}`
+    }));
+
+    const customSelectStyles = {
+        control: (base, state) => ({
+            ...base,
+            minHeight: '42px',
+            borderColor: state.isFocused ? '#752568' : '#d1d5db',
+            boxShadow: state.isFocused ? '0 0 0 2px rgba(117, 37, 104, 0.2)' : base.boxShadow,
+            '&:hover': {
+                borderColor: '#752568'
+            },
+            borderRadius: '0.5rem',
+            fontSize: '0.875rem',
+            backgroundColor: '#f9fafb'
+        }),
+        option: (base, state) => ({
+            ...base,
+            backgroundColor: state.isSelected 
+                ? '#752568' 
+                : state.isFocused 
+                    ? '#f3e8ff' 
+                    : 'white',
+            color: state.isSelected ? 'white' : '#374151',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            '&:active': {
+                backgroundColor: '#752568'
+            }
+        }),
+        menu: (base) => ({
+            ...base,
+            borderRadius: '0.5rem',
+            overflow: 'hidden',
+            fontSize: '0.875rem'
+        }),
+        placeholder: (base) => ({
+            ...base,
+            color: '#9ca3af',
+            fontSize: '0.875rem'
+        }),
+        singleValue: (base) => ({
+            ...base,
+            color: '#374151',
+            fontSize: '0.875rem'
+        })
+    };
+
     return (
         <MainLayout>
             <div className="space-y-6">
@@ -660,16 +712,16 @@ const CitasRiesgoPage = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Paciente (Serumista) <span className="text-red-500">*</span>
                                     </label>
-                                    <select
-                                        value={selectedPaciente}
-                                        onChange={(e) => setSelectedPaciente(e.target.value)}
-                                        className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#752568] focus:border-[#752568]"
-                                    >
-                                        <option value="">Seleccione paciente</option>
-                                        {pacientes.map(p => (
-                                            <option key={p.id} value={p.id}>{p.nombre_completo} - CMP: {p.cmp}</option>
-                                        ))}
-                                    </select>
+                                    <Select
+                                        options={pacientesOptions}
+                                        value={pacientesOptions.find(option => option.value === selectedPaciente) || null}
+                                        onChange={(selectedOption) => setSelectedPaciente(selectedOption?.value || '')}
+                                        styles={customSelectStyles}
+                                        placeholder="Buscar paciente..."
+                                        isClearable
+                                        isSearchable
+                                        noOptionsMessage={() => 'No se encontraron pacientes'}
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -937,14 +989,41 @@ const CitasRiesgoPage = () => {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-gray-500 mb-1">Filtrar por Paciente</label>
-                                    <select
-                                        value={filtroPacienteCalendario}
-                                        onChange={(e) => setFiltroPacienteCalendario(e.target.value)}
-                                        className="w-full text-sm border-gray-300 rounded-md p-2"
-                                    >
-                                        <option value="todos">Todos los pacientes</option>
-                                        {pacientes.map(p => <option key={p.id} value={p.id}>{p.nombre_completo}</option>)}
-                                    </select>
+                                    <Select
+                                        options={[
+                                            { value: 'todos', label: 'Todos los pacientes' },
+                                            ...pacientes.map(p => ({
+                                                value: p.id,
+                                                label: p.nombre_completo
+                                            }))
+                                        ]}
+                                        value={
+                                            filtroPacienteCalendario === 'todos'
+                                                ? { value: 'todos', label: 'Todos los pacientes' }
+                                                : pacientes.find(p => p.id === filtroPacienteCalendario)
+                                                    ? { value: filtroPacienteCalendario, label: pacientes.find(p => p.id === filtroPacienteCalendario).nombre_completo }
+                                                    : { value: 'todos', label: 'Todos los pacientes' }
+                                        }
+                                        onChange={(selectedOption) => setFiltroPacienteCalendario(selectedOption?.value || 'todos')}
+                                        styles={{
+                                            ...customSelectStyles,
+                                            control: (base, state) => ({
+                                                ...base,
+                                                minHeight: '38px',
+                                                borderColor: state.isFocused ? '#752568' : '#d1d5db',
+                                                boxShadow: state.isFocused ? '0 0 0 1px #752568' : base.boxShadow,
+                                                '&:hover': {
+                                                    borderColor: '#752568'
+                                                },
+                                                borderRadius: '0.375rem',
+                                                fontSize: '0.875rem'
+                                            })
+                                        }}
+                                        placeholder="Buscar paciente..."
+                                        isClearable={false}
+                                        isSearchable
+                                        noOptionsMessage={() => 'No se encontraron pacientes'}
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-gray-500 mb-1">Mostrar Horarios</label>
