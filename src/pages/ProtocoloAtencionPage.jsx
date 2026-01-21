@@ -42,13 +42,15 @@ const ProtocoloAtencionPage = () => {
     });
 
     const [terapeutas, setTerapeutas] = useState([]);
+    const [pacientes, setPacientes] = useState([]);
 
     const [filtros, setFiltros] = useState(() => {
         const saved = sessionStorage.getItem('protocolo_filtros');
         return saved ? JSON.parse(saved) : {
             terapeuta_id: '',
             mes: '',
-            estado: ''
+            estado: '',
+            paciente_id: ''
         };
     });
 
@@ -111,6 +113,7 @@ const ProtocoloAtencionPage = () => {
 
     useEffect(() => {
         cargarTerapeutas();
+        cargarPacientes();
     }, []);
 
     // Ref para controlar la carga inicial
@@ -136,6 +139,17 @@ const ProtocoloAtencionPage = () => {
             }
         } catch (error) {
             console.error('Error al cargar terapeutas:', error);
+        }
+    };
+
+    const cargarPacientes = async () => {
+        try {
+            const response = await axios.get('/protocolos/pacientes');
+            if (response.data.success) {
+                setPacientes(response.data.data);
+            }
+        } catch (error) {
+            console.error('Error al cargar pacientes:', error);
         }
     };
 
@@ -396,7 +410,7 @@ const ProtocoloAtencionPage = () => {
                         <h3 className="font-semibold">Filtros de Búsqueda</h3>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
                             <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
                                 <UserIcon className="w-3 h-3" /> Filtrar por Terapeuta
@@ -443,6 +457,21 @@ const ProtocoloAtencionPage = () => {
                                 <option value="4">Cancelado</option>
                                 <option value="finalizados">Finalizados</option>
                                 <option value="derivados">Derivados</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
+                                <UserIcon className="w-3 h-3" /> Filtrar por Paciente
+                            </label>
+                            <select
+                                className="w-full border-gray-300 rounded-lg text-sm focus:ring-[#752568] focus:border-[#752568] py-2.5"
+                                value={filtros.paciente_id}
+                                onChange={(e) => handleFiltroChange('paciente_id', e.target.value)}
+                            >
+                                <option value="">Todos los pacientes</option>
+                                {pacientes.map(p => (
+                                    <option key={p.id} value={p.id}>{p.nombre_completo}</option>
+                                ))}
                             </select>
                         </div>
                     </div>
