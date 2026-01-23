@@ -8,22 +8,49 @@ import {
     Brain, Clipboard, MessageSquare, Save, UserX, CircleCheck, Download, Loader2
 } from 'lucide-react';
 
-// Helper para campos
-const Field = ({ label, name, value, fullWidth = false, readOnly = false, isEditable, formData, onChange }) => {
+// Helper para campos con contador de caracteres
+const Field = ({ label, name, value, fullWidth = false, readOnly = false, isEditable, formData, onChange, maxLength, hasError }) => {
     const editable = isEditable && !readOnly;
+    const currentValue = formData[name] || '';
+    const currentLength = currentValue.length;
+    const limit = maxLength || 500; // Default 500 si no se especifica
+    const isOverLimit = currentLength > limit;
+    const isNearLimit = currentLength > limit * 0.9; // 90% del límite
 
     return (
         <div className={`mb-4 ${fullWidth ? 'col-span-2' : ''}`}>
             <label className="block text-xs font-semibold text-gray-700 mb-1.5">{label}</label>
             {editable ? (
-                <textarea
-                    name={name}
-                    value={formData[name] || ''}
-                    onChange={onChange}
-                    className="w-full p-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-[#752568] focus:border-[#752568] min-h-[46px]"
-                    rows={2}
-                    placeholder="Escriba su respuesta aquí..."
-                />
+                <div className="relative">
+                    <textarea
+                        name={name}
+                        value={currentValue}
+                        onChange={onChange}
+                        className={`w-full p-3 bg-white border rounded-lg text-sm text-gray-900 focus:ring-[#752568] focus:border-[#752568] min-h-[46px] ${
+                            isOverLimit || hasError
+                                ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                                : isNearLimit 
+                                    ? 'border-yellow-500' 
+                                    : 'border-gray-300'
+                        }`}
+                        rows={2}
+                        placeholder="Escriba su respuesta aquí..."
+                    />
+                    <div className={`absolute bottom-2 right-2 text-xs px-2 py-0.5 rounded ${
+                        isOverLimit 
+                            ? 'bg-red-100 text-red-700 font-semibold' 
+                            : isNearLimit 
+                                ? 'bg-yellow-100 text-yellow-700' 
+                                : 'bg-gray-100 text-gray-500'
+                    }`}>
+                        {currentLength}/{limit}
+                    </div>
+                    {isOverLimit && (
+                        <p className="text-xs text-red-600 mt-1">
+                            Excede el límite por {currentLength - limit} caracteres
+                        </p>
+                    )}
+                </div>
             ) : (
                 <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 min-h-[46px] whitespace-pre-wrap">
                     {value || formData[name] || '-'}
@@ -74,6 +101,8 @@ const ProtocoloDetallePage = () => {
     const [activeTab, setActiveTab] = useState('sesion1');
     const [formData, setFormData] = useState({});
     const [saving, setSaving] = useState(false);
+    const [fieldLimits, setFieldLimits] = useState({});
+    const [fieldErrors, setFieldErrors] = useState([]);
 
     // Accordion state
     const [expandedSections, setExpandedSections] = useState({
@@ -89,19 +118,28 @@ const ProtocoloDetallePage = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get(`/protocolos/${id}`);
-                if (response.data.success) {
-                    setData(response.data.data);
+                // Cargar datos del protocolo y límites de campos en paralelo
+                const [protocoloRes, limitsRes] = await Promise.all([
+                    axios.get(`/protocolos/${id}`),
+                    axios.get('/protocolos/field-limits')
+                ]);
+
+                if (protocoloRes.data.success) {
+                    setData(protocoloRes.data.data);
 
                     // Inicializar formData con datos de la sesión
-                    if (response.data.data.sesion) {
-                        setFormData(response.data.data.sesion);
+                    if (protocoloRes.data.data.sesion) {
+                        setFormData(protocoloRes.data.data.sesion);
                     }
 
                     // Establecer tab activo según sesión actual solo al cargar por primera vez
-                    const globalNro = response.data.data.numero_cita_global || 1;
-                    const sesionEnIntervencion = response.data.data.cita?.numero_sesion || ((globalNro - 1) % 4) + 1;
+                    const globalNro = protocoloRes.data.data.numero_cita_global || 1;
+                    const sesionEnIntervencion = protocoloRes.data.data.cita?.numero_sesion || ((globalNro - 1) % 4) + 1;
                     setActiveTab(`sesion${sesionEnIntervencion}`);
+                }
+
+                if (limitsRes.data.success) {
+                    setFieldLimits(limitsRes.data.data);
                 }
             } catch (error) {
                 console.error('Error al cargar detalles:', error);
@@ -125,9 +163,46 @@ const ProtocoloDetallePage = () => {
             ...prev,
             [name]: value
         }));
+        // Limpiar error del campo cuando el usuario lo modifica
+        if (fieldErrors.includes(name)) {
+            setFieldErrors(prev => prev.filter(f => f !== name));
+        }
+    };
+
+    // Validar campos antes de enviar
+    const validateBeforeSave = () => {
+        const errors = [];
+        const errorMessages = [];
+
+        for (const [field, maxLength] of Object.entries(fieldLimits)) {
+            const value = formData[field];
+            if (value && typeof value === 'string' && value.length > maxLength) {
+                errors.push(field);
+                errorMessages.push(`• ${field}: ${value.length}/${maxLength} caracteres`);
+            }
+        }
+
+        if (errors.length > 0) {
+            setFieldErrors(errors);
+            return { valid: false, errors: errorMessages };
+        }
+
+        return { valid: true };
     };
 
     const handleRegistrar = async () => {
+        // Validar campos localmente primero
+        const validation = validateBeforeSave();
+        if (!validation.valid) {
+            Swal.fire({
+                title: 'Campos exceden el límite',
+                html: `<div class="text-left text-sm">Los siguientes campos exceden el límite de caracteres:<br><br>${validation.errors.join('<br>')}</div>`,
+                icon: 'warning',
+                confirmButtonColor: '#752568'
+            });
+            return;
+        }
+
         // Mostrar confirmación antes de guardar
         const result = await Swal.fire({
             title: '¿Confirmar registro?',
@@ -145,6 +220,7 @@ const ProtocoloDetallePage = () => {
         }
 
         setSaving(true);
+        setFieldErrors([]);
         try {
             const payload = {
                 cita_id: data.cita.id,
@@ -163,7 +239,23 @@ const ProtocoloDetallePage = () => {
             }
         } catch (error) {
             console.error('Error al guardar:', error);
-            Swal.fire('Error', 'No se pudo registrar la sesión', 'error');
+            
+            // Manejar errores de validación del backend
+            if (error.response?.status === 422 && error.response?.data?.errors) {
+                const backendErrors = error.response.data.errors;
+                const errorFields = error.response.data.field_errors || Object.keys(backendErrors);
+                setFieldErrors(errorFields);
+                
+                const errorMessages = Object.values(backendErrors).join('<br>');
+                Swal.fire({
+                    title: 'Error de validación',
+                    html: `<div class="text-left text-sm">${errorMessages}</div>`,
+                    icon: 'error',
+                    confirmButtonColor: '#752568'
+                });
+            } else {
+                Swal.fire('Error', 'No se pudo registrar la sesión', 'error');
+            }
         } finally {
             setSaving(false);
         }
@@ -545,13 +637,13 @@ const ProtocoloDetallePage = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <Field label="1. Nombre completo del serumista" value={paciente.nombre_completo} fullWidth readOnly isEditable={isEditable} formData={formData} onChange={handleInputChange} />
                                     <Field label="2. Edad y fecha de nacimiento" value={paciente.fecha_nacimiento ? `${paciente.fecha_nacimiento} (Calculada)` : '-'} fullWidth readOnly isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="3. Estado civil y composición familiar" name="con_quien" value={sesion?.con_quien} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="4. Lugar de origen y residencia actual" name="donde_vives" value={sesion?.donde_vives} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="5. Nivel educativo y formación profesional" name="estudiando" value={sesion?.estudiando} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="6. Ocupación actual y lugar de SERUMS" name="comodo_en_trabajo" value={sesion?.comodo_en_trabajo} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="7. Motivo principal de consulta" name="problema_motiva" value={sesion?.problema_motiva} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="8. ¿Cuándo comenzaron los síntomas?" name="tiempo_empezo" value={sesion?.tiempo_empezo} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="9. ¿Qué factores desencadenaron la situación actual?" name="disparadores_existe" value={sesion?.disparadores_existe} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
+                                    <Field label="3. Estado civil y composición familiar" name="con_quien" value={sesion?.con_quien} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.con_quien} hasError={fieldErrors.includes('con_quien')} />
+                                    <Field label="4. Lugar de origen y residencia actual" name="donde_vives" value={sesion?.donde_vives} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.donde_vives} hasError={fieldErrors.includes('donde_vives')} />
+                                    <Field label="5. Nivel educativo y formación profesional" name="estudiando" value={sesion?.estudiando} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.estudiando} hasError={fieldErrors.includes('estudiando')} />
+                                    <Field label="6. Ocupación actual y lugar de SERUMS" name="comodo_en_trabajo" value={sesion?.comodo_en_trabajo} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.comodo_en_trabajo} hasError={fieldErrors.includes('comodo_en_trabajo')} />
+                                    <Field label="7. Motivo principal de consulta" name="problema_motiva" value={sesion?.problema_motiva} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.problema_motiva} hasError={fieldErrors.includes('problema_motiva')} />
+                                    <Field label="8. ¿Cuándo comenzaron los síntomas?" name="tiempo_empezo" value={sesion?.tiempo_empezo} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.tiempo_empezo} hasError={fieldErrors.includes('tiempo_empezo')} />
+                                    <Field label="9. ¿Qué factores desencadenaron la situación actual?" name="disparadores_existe" value={sesion?.disparadores_existe} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.disparadores_existe} hasError={fieldErrors.includes('disparadores_existe')} />
                                 </div>
                             </AccordionItem>
 
@@ -563,9 +655,9 @@ const ProtocoloDetallePage = () => {
                                 onToggle={toggleSection}
                             >
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <Field label="Relaciones afectuosas" name="relaciones_afectuosas" value={sesion?.relaciones_afectuosas} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Bienestar en casa" name="bien_en_casa" value={sesion?.bien_en_casa} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Tiempo en residencia actual" name="tiempo_en_casa" value={sesion?.tiempo_en_casa} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
+                                    <Field label="Relaciones afectuosas" name="relaciones_afectuosas" value={sesion?.relaciones_afectuosas} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.relaciones_afectuosas} hasError={fieldErrors.includes('relaciones_afectuosas')} />
+                                    <Field label="Bienestar en casa" name="bien_en_casa" value={sesion?.bien_en_casa} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.bien_en_casa} hasError={fieldErrors.includes('bien_en_casa')} />
+                                    <Field label="Tiempo en residencia actual" name="tiempo_en_casa" value={sesion?.tiempo_en_casa} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.tiempo_en_casa} hasError={fieldErrors.includes('tiempo_en_casa')} />
                                 </div>
                             </AccordionItem>
 
@@ -578,7 +670,7 @@ const ProtocoloDetallePage = () => {
                             >
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <Field label="¿Ha recibido atención psicológica anteriormente?" value="-" fullWidth readOnly isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Intentos de solución previos" name="intentos_solucion" value={sesion?.intentos_solucion} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
+                                    <Field label="Intentos de solución previos" name="intentos_solucion" value={sesion?.intentos_solucion} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.intentos_solucion} hasError={fieldErrors.includes('intentos_solucion')} />
                                 </div>
                             </AccordionItem>
 
@@ -590,10 +682,10 @@ const ProtocoloDetallePage = () => {
                                 onToggle={toggleSection}
                             >
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <Field label="Apertura" name="apertura" value={sesion?.apertura} isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Consciencia" name="consciencia" value={sesion?.consciencia} isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Hacer lo que importa" name="hacer_importa" value={sesion?.hacer_importa} isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Severidad percibida (1-10)" name="severidad_grande" value={sesion?.severidad_grande} isEditable={isEditable} formData={formData} onChange={handleInputChange} />
+                                    <Field label="Apertura" name="apertura" value={sesion?.apertura} isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.apertura} hasError={fieldErrors.includes('apertura')} />
+                                    <Field label="Consciencia" name="consciencia" value={sesion?.consciencia} isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.consciencia} hasError={fieldErrors.includes('consciencia')} />
+                                    <Field label="Hacer lo que importa" name="hacer_importa" value={sesion?.hacer_importa} isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.hacer_importa} hasError={fieldErrors.includes('hacer_importa')} />
+                                    <Field label="Severidad percibida (1-10)" name="severidad_grande" value={sesion?.severidad_grande} isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.severidad_grande} hasError={fieldErrors.includes('severidad_grande')} />
                                 </div>
                             </AccordionItem>
 
@@ -605,9 +697,9 @@ const ProtocoloDetallePage = () => {
                                 onToggle={toggleSection}
                             >
                                 <div className="grid grid-cols-1 gap-6">
-                                    <Field label="Costes y Consecuencias" name="costes_problema" value={sesion?.costes_problema} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Funcionamiento a corto plazo" name="costes_funcion" value={sesion?.costes_funcion} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Funcionamiento a largo plazo" name="costes_plazo" value={sesion?.costes_plazo} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
+                                    <Field label="Costes y Consecuencias" name="costes_problema" value={sesion?.costes_problema} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.costes_problema} hasError={fieldErrors.includes('costes_problema')} />
+                                    <Field label="Funcionamiento a corto plazo" name="costes_funcion" value={sesion?.costes_funcion} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.costes_funcion} hasError={fieldErrors.includes('costes_funcion')} />
+                                    <Field label="Funcionamiento a largo plazo" name="costes_plazo" value={sesion?.costes_plazo} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.costes_plazo} hasError={fieldErrors.includes('costes_plazo')} />
                                 </div>
                             </AccordionItem>
 
@@ -619,8 +711,8 @@ const ProtocoloDetallePage = () => {
                                 onToggle={toggleSection}
                             >
                                 <div className="grid grid-cols-1 gap-6">
-                                    <Field label="Establecimiento de Objetivos" name="establecimiento" value={sesion?.establecimiento} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Intervención Breve" name="intervencion" value={sesion?.intervencion} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
+                                    <Field label="Establecimiento de Objetivos" name="establecimiento" value={sesion?.establecimiento} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.establecimiento} hasError={fieldErrors.includes('establecimiento')} />
+                                    <Field label="Intervención Breve" name="intervencion" value={sesion?.intervencion} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.intervencion} hasError={fieldErrors.includes('intervencion')} />
                                 </div>
                             </AccordionItem>
 
@@ -632,7 +724,7 @@ const ProtocoloDetallePage = () => {
                                 onToggle={toggleSection}
                             >
                                 <div className="grid grid-cols-1 gap-6">
-                                    <Field label="Recomendaciones" name="recomendacionsesionuno" value={sesion?.recomendacionsesionuno} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
+                                    <Field label="Recomendaciones" name="recomendacionsesionuno" value={sesion?.recomendacionsesionuno} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.recomendacionsesionuno} hasError={fieldErrors.includes('recomendacionsesionuno')} />
                                 </div>
                             </AccordionItem>
                         </div>
@@ -643,26 +735,26 @@ const ProtocoloDetallePage = () => {
                         <div className="bg-white p-6 rounded-lg border border-gray-200">
                             {activeTab === 'sesion2' && (
                                 <div className="space-y-4">
-                                    <Field label="Revisión del Plan" name="sesiondos_revision" value={sesion?.sesiondos_revision} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Intervención" name="sesiondos_intervencion" value={sesion?.sesiondos_intervencion} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Progreso" name="sesiondos_progreso" value={sesion?.sesiondos_progreso} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Recomendaciones" name="recomendacionsesiondos" value={sesion?.recomendacionsesiondos} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
+                                    <Field label="Revisión del Plan" name="sesiondos_revision" value={sesion?.sesiondos_revision} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.sesiondos_revision} hasError={fieldErrors.includes('sesiondos_revision')} />
+                                    <Field label="Intervención" name="sesiondos_intervencion" value={sesion?.sesiondos_intervencion} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.sesiondos_intervencion} hasError={fieldErrors.includes('sesiondos_intervencion')} />
+                                    <Field label="Progreso" name="sesiondos_progreso" value={sesion?.sesiondos_progreso} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.sesiondos_progreso} hasError={fieldErrors.includes('sesiondos_progreso')} />
+                                    <Field label="Recomendaciones" name="recomendacionsesiondos" value={sesion?.recomendacionsesiondos} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.recomendacionsesiondos} hasError={fieldErrors.includes('recomendacionsesiondos')} />
                                 </div>
                             )}
                             {activeTab === 'sesion3' && (
                                 <div className="space-y-4">
-                                    <Field label="Revisión del Plan" name="sesiontres_revision" value={sesion?.sesiontres_revision} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Intervención" name="sesiontres_intervencion" value={sesion?.sesiontres_intervencion} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Progreso" name="sesiontres_progreso" value={sesion?.sesiontres_progreso} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Recomendaciones" name="recomendacionsesiontres" value={sesion?.recomendacionsesiontres} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
+                                    <Field label="Revisión del Plan" name="sesiontres_revision" value={sesion?.sesiontres_revision} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.sesiontres_revision} hasError={fieldErrors.includes('sesiontres_revision')} />
+                                    <Field label="Intervención" name="sesiontres_intervencion" value={sesion?.sesiontres_intervencion} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.sesiontres_intervencion} hasError={fieldErrors.includes('sesiontres_intervencion')} />
+                                    <Field label="Progreso" name="sesiontres_progreso" value={sesion?.sesiontres_progreso} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.sesiontres_progreso} hasError={fieldErrors.includes('sesiontres_progreso')} />
+                                    <Field label="Recomendaciones" name="recomendacionsesiontres" value={sesion?.recomendacionsesiontres} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.recomendacionsesiontres} hasError={fieldErrors.includes('recomendacionsesiontres')} />
                                 </div>
                             )}
                             {activeTab === 'sesion4' && (
                                 <div className="space-y-4">
-                                    <Field label="Revisión del Plan" name="sesioncuatro_revision" value={sesion?.sesioncuatro_revision} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Intervención" name="sesioncuatro_intervencion" value={sesion?.sesioncuatro_intervencion} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Progreso" name="sesioncuatro_progreso" value={sesion?.sesioncuatro_progreso} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
-                                    <Field label="Recomendaciones" name="recomendacionsesioncuatro" value={sesion?.recomendacionsesioncuatro} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} />
+                                    <Field label="Revisión del Plan" name="sesioncuatro_revision" value={sesion?.sesioncuatro_revision} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.sesioncuatro_revision} hasError={fieldErrors.includes('sesioncuatro_revision')} />
+                                    <Field label="Intervención" name="sesioncuatro_intervencion" value={sesion?.sesioncuatro_intervencion} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.sesioncuatro_intervencion} hasError={fieldErrors.includes('sesioncuatro_intervencion')} />
+                                    <Field label="Progreso" name="sesioncuatro_progreso" value={sesion?.sesioncuatro_progreso} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.sesioncuatro_progreso} hasError={fieldErrors.includes('sesioncuatro_progreso')} />
+                                    <Field label="Recomendaciones" name="recomendacionsesioncuatro" value={sesion?.recomendacionsesioncuatro} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.recomendacionsesioncuatro} hasError={fieldErrors.includes('recomendacionsesioncuatro')} />
                                 </div>
                             )}
                         </div>
