@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
 import MainLayout from '../components/layouts/MainLayout';
+import { useAuth } from '../context/AuthContext';
 import Swal from 'sweetalert2';
 import Select from 'react-select';
 import {
@@ -17,12 +18,20 @@ import {
     ChevronRight,
     User as UserIcon,
     X,
-    CircleAlert
+    CircleAlert,
+    Pencil,
+    Unlock
 } from 'lucide-react';
 
 const ProtocoloAtencionPage = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
+    const [habilitandoId, setHabilitandoId] = useState(null);
+
+    // Solo Administrador (perfil_id 1) y Psicólogo (perfil_id 10) pueden habilitar atención/edición
+    const perfilId = parseInt(user?.perfil_id ?? user?.perfil?.id ?? 0, 10);
+    const canHabilitarAtencion = perfilId === 1 || perfilId === 10;
 
     // Estados con inicialización desde sessionStorage
     const [citas, setCitas] = useState(() => {
@@ -324,6 +333,55 @@ const ProtocoloAtencionPage = () => {
         } catch (error) {
             console.error('Error al procesar cita:', error);
             Swal.fire('Error', error.response?.data?.message || 'Ocurrió un error', 'error');
+        }
+    };
+
+    const handleHabilitarAtencion = async (cita, tipo) => {
+        const esEdicion = tipo === 'edicion';
+        const titulo = esEdicion ? 'Habilitar edición' : 'Habilitar atención';
+        const textoPregunta = esEdicion
+            ? '¿Poner esta cita en estado "Por atender" para poder editar el protocolo?'
+            : '¿Poner esta cita en estado "Por atender" para poder llenar el protocolo?';
+        const paciente = cita.paciente?.nombre_completo || 'Sin asignar';
+        const medico = cita.medico?.nombre_completo || 'Sin asignar';
+        const fecha = formatearFecha(cita.fecha);
+        const hora = cita.hora_inicio && cita.hora_fin
+            ? `${(cita.hora_inicio || '').substring(0, 5)} - ${(cita.hora_fin || '').substring(0, 5)}`
+            : '-';
+        const html = `
+            <div class="text-left">
+                <div class="bg-gray-50 rounded-lg p-4 mb-4 space-y-2 text-sm">
+                    <p><span class="text-gray-500 font-medium">Paciente:</span> ${paciente}</p>
+                    <p><span class="text-gray-500 font-medium">Médico/Terapeuta:</span> ${medico}</p>
+                    <p><span class="text-gray-500 font-medium">Fecha:</span> ${fecha}</p>
+                    <p><span class="text-gray-500 font-medium">Horario:</span> ${hora}</p>
+                </div>
+                <p class="text-gray-700">${textoPregunta}</p>
+            </div>
+        `;
+        const { isConfirmed } = await Swal.fire({
+            title: titulo,
+            html,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#752568',
+            cancelButtonText: 'Cancelar',
+            confirmButtonText: 'Sí, habilitar'
+        });
+        if (!isConfirmed) return;
+        try {
+            setHabilitandoId(cita.id);
+            const response = await axios.post('/protocolos/habilitar_atencion', { cita_id: cita.id });
+            if (response.data.success) {
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: response.data.message, showConfirmButton: false, timer: 3000 });
+                sessionStorage.removeItem('protocolo_citas');
+                setCitas([]);
+                cargarDatos(paginacion.current_page);
+            }
+        } catch (error) {
+            Swal.fire('Error', error.response?.data?.message || 'No se pudo habilitar', 'error');
+        } finally {
+            setHabilitandoId(null);
         }
     };
 
@@ -708,16 +766,28 @@ const ProtocoloAtencionPage = () => {
                                                             );
                                                         }
 
-                                                        // Cita Finalizada: Solo Ver Protocolo
+                                                        // Cita Finalizada: Ver Protocolo + Habilitar atención (Admin/Psicólogo)
                                                         if (estaFinalizada) {
                                                             return (
-                                                                <button
-                                                                    onClick={() => navigate(`/protocolo/${cita.id}`)}
-                                                                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 size-9 rounded-md border-green-300 text-green-700 hover:bg-green-50 h-8 w-8"
-                                                                    title="Ver protocolo"
-                                                                >
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text h-4 w-4"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
-                                                                </button>
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => navigate(`/protocolo/${cita.id}`)}
+                                                                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 size-9 rounded-md border-green-300 text-green-700 hover:bg-green-50 h-8 w-8"
+                                                                        title="Ver protocolo"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text h-4 w-4"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+                                                                    </button>
+                                                                    {canHabilitarAtencion && (
+                                                                        <button
+                                                                            onClick={() => handleHabilitarAtencion(cita, 'atencion')}
+                                                                            disabled={habilitandoId === cita.id}
+                                                                            className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-9 rounded-md bg-[#752568] hover:bg-[#5a1d4f] text-white h-8 w-8"
+                                                                            title="Habilitar atención"
+                                                                        >
+                                                                            {habilitandoId === cita.id ? <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Unlock className="w-4 h-4" />}
+                                                                        </button>
+                                                                    )}
+                                                                </>
                                                             );
                                                         }
 
@@ -768,6 +838,16 @@ const ProtocoloAtencionPage = () => {
                                                                     >
                                                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text h-4 w-4"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
                                                                     </button>
+                                                                    {canHabilitarAtencion && (
+                                                                        <button
+                                                                            onClick={() => handleHabilitarAtencion(cita, 'edicion')}
+                                                                            disabled={habilitandoId === cita.id}
+                                                                            className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 size-9 rounded-md border-amber-300 text-amber-700 hover:bg-amber-50 h-8 w-8"
+                                                                            title="Habilitar edición"
+                                                                        >
+                                                                            {habilitandoId === cita.id ? <span className="animate-spin inline-block w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full" /> : <Pencil className="w-4 h-4" />}
+                                                                        </button>
+                                                                    )}
                                                                     {!hasNext && (
                                                                         <button
                                                                             onClick={() => openModal(cita, 'agendar')}
@@ -792,6 +872,16 @@ const ProtocoloAtencionPage = () => {
                                                                     >
                                                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text h-4 w-4"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
                                                                     </button>
+                                                                    {canHabilitarAtencion && (
+                                                                        <button
+                                                                            onClick={() => handleHabilitarAtencion(cita, 'atencion')}
+                                                                            disabled={habilitandoId === cita.id}
+                                                                            className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-9 rounded-md bg-[#752568] hover:bg-[#5a1d4f] text-white h-8 w-8"
+                                                                            title="Habilitar atención"
+                                                                        >
+                                                                            {habilitandoId === cita.id ? <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Unlock className="w-4 h-4" />}
+                                                                        </button>
+                                                                    )}
                                                                     {!hasNext && (
                                                                         <button
                                                                             onClick={() => openModal(cita, 'reprogramar')}
@@ -816,6 +906,16 @@ const ProtocoloAtencionPage = () => {
                                                                     >
                                                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text h-4 w-4"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
                                                                     </button>
+                                                                    {canHabilitarAtencion && (
+                                                                        <button
+                                                                            onClick={() => handleHabilitarAtencion(cita, 'atencion')}
+                                                                            disabled={habilitandoId === cita.id}
+                                                                            className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-9 rounded-md bg-[#752568] hover:bg-[#5a1d4f] text-white h-8 w-8"
+                                                                            title="Habilitar atención"
+                                                                        >
+                                                                            {habilitandoId === cita.id ? <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Unlock className="w-4 h-4" />}
+                                                                        </button>
+                                                                    )}
                                                                     {!hasNext && (
                                                                         <button
                                                                             onClick={() => openModal(cita, 'reprogramar')}
