@@ -93,6 +93,102 @@ const AccordionItem = ({ id, title, icon: Icon, children, isOpen, onToggle }) =>
     );
 };
 
+// Opciones de la pregunta 9 (factores desencadenantes). Clave usada en disparadores_check.
+const DISPARADORES_OPCIONES = [
+    {
+        titulo: 'Factores Laborales y del Puesto',
+        opciones: [
+            { key: 'sobrecarga_laboral', label: 'Sobrecarga laboral (guardias frecuentes, múltiples funciones no previstas)' },
+            { key: 'ambiguedad_rol', label: 'Ambigüedad de rol (funciones poco claras, tareas administrativas excesivas)' },
+            { key: 'falta_supervision_clinica', label: 'Falta de supervisión clínica o acompañamiento profesional' },
+            { key: 'conflictos_jefaturas', label: 'Conflictos con jefaturas, coordinadores o personal del establecimiento' },
+            { key: 'presion_asistencial_sin_recursos', label: 'Presión asistencial sin recursos suficientes' },
+            { key: 'responsabilidad_clinica_desproporcionada', label: 'Responsabilidad clínica percibida como desproporcionada a la experiencia' },
+            { key: 'exposicion_sufrimiento_muerte', label: 'Exposición frecuente a sufrimiento, muerte o eventos críticos' },
+        ],
+    },
+    {
+        titulo: 'Factores Organizacionales / del Sistema',
+        opciones: [
+            { key: 'deficiencia_insumos_medicamentos', label: 'Deficiencia de insumos, medicamentos o equipamiento básico' },
+            { key: 'infraestructura_inadecuada', label: 'Infraestructura inadecuada del establecimiento' },
+            { key: 'procesos_administrativos_engorrosos', label: 'Procesos administrativos engorrosos o punitivos' },
+            { key: 'sensacion_abandono_institucional', label: 'Sensación de abandono institucional' },
+            { key: 'dificultades_permisos_descansos', label: 'Dificultades para permisos, descansos o licencias' },
+            { key: 'incertidumbre_pagos_contratos', label: 'Incertidumbre sobre pagos, contratos o beneficios' },
+            { key: 'falta_canales_queja_soporte', label: 'Falta de canales claros de queja o soporte' },
+        ],
+    },
+    {
+        titulo: 'Factores Geográficos y Contextuales',
+        opciones: [
+            { key: 'aislamiento_geografico', label: 'Aislamiento geográfico significativo' },
+            { key: 'dificultad_acceso_transporte', label: 'Dificultad para acceso a transporte o comunicación' },
+            { key: 'limitado_acceso_internet', label: 'Limitado acceso a internet o telefonía estable' },
+            { key: 'clima_extremo', label: 'Clima extremo o condiciones ambientales adversas' },
+            { key: 'barreras_culturales_linguisticas', label: 'Barreras culturales o lingüísticas con la población atendida' },
+            { key: 'sensacion_inseguridad_zona', label: 'Sensación de inseguridad en la zona de trabajo o vivienda' },
+        ],
+    },
+    {
+        titulo: 'Acoso Laboral (Mobbing)',
+        opciones: [
+            { key: 'trato_humillante_descalificaciones', label: 'Trato humillante, descalificaciones o ridiculización reiterada' },
+            { key: 'supervision_excesiva_punitiva', label: 'Supervisión excesiva, punitiva o intimidatoria' },
+            { key: 'tareas_degradantes_castigo', label: 'Asignación de tareas degradantes o fuera de funciones como castigo' },
+            { key: 'amenazas_contrato_evaluacion', label: 'Amenazas implícitas o explícitas relacionadas al contrato o evaluación' },
+            { key: 'exclusion_deliberada', label: 'Exclusión deliberada de reuniones, decisiones o comunicación relevante' },
+            { key: 'mensajes_hostiles', label: 'Mensajes hostiles, sarcásticos o intimidantes (presenciales o virtuales)' },
+            { key: 'sensacion_hostilidad_ambiente', label: 'Sensación persistente de hostilidad en el ambiente laboral' },
+        ],
+    },
+    {
+        titulo: 'Acoso Sexual (verbal, no verbal o físico)',
+        opciones: [
+            { key: 'comentarios_sexuales_no_deseados', label: 'Comentarios sexuales no deseados sobre el cuerpo o apariencia' },
+            { key: 'insinuaciones_bromas_sexuales', label: 'Insinuaciones, bromas sexuales o "halagos" incómodos' },
+            { key: 'miradas_gestos_connotacion_sexual', label: 'Miradas, gestos o mensajes con connotación sexual' },
+            { key: 'contacto_fisico_no_consentido', label: 'Contacto físico no consentido' },
+            { key: 'solicitudes_sexuales_explicitas', label: 'Solicitudes sexuales explícitas o implícitas' },
+            { key: 'condicionamiento_evaluaciones_favores', label: 'Condicionamiento de evaluaciones, beneficios o trato a favores sexuales' },
+            { key: 'temor_represalias_denuncia', label: 'Temor a represalias si se rechaza o denuncia' },
+        ],
+    },
+    {
+        titulo: 'Violencia Psicológica Institucional',
+        opciones: [
+            { key: 'normalizacion_maltrato_serums', label: 'Normalización del maltrato como "parte del SERUMS"' },
+            { key: 'invalidacion_emocional', label: 'Invalidación emocional ("todos pasan por eso", "así es la posta")' },
+            { key: 'minimizacion_denuncias', label: 'Minimización de denuncias o quejas' },
+            { key: 'falta_respuesta_situaciones', label: 'Falta de respuesta ante situaciones reportadas' },
+            { key: 'sensacion_indefension_jerarquia', label: 'Sensación de indefensión frente a la jerarquía' },
+            { key: 'miedo_consecuencias_hablar', label: 'Miedo a consecuencias profesionales por hablar' },
+        ],
+    },
+    {
+        titulo: 'Violencia Física o Amenazas',
+        opciones: [
+            { key: 'agresiones_verbales_pacientes', label: 'Agresiones verbales por pacientes o familiares' },
+            { key: 'amenazas_directas_veladas', label: 'Amenazas directas o veladas' },
+            { key: 'intentos_agresion_fisica', label: 'Intentos de agresión física' },
+            { key: 'falta_protocolos_seguridad', label: 'Falta de protocolos de seguridad en el establecimiento' },
+            { key: 'sensacion_riesgo_personal', label: 'Sensación constante de riesgo personal' },
+            { key: 'presenciado_violencia_colega', label: 'Haber presenciado violencia hacia otros colegas' },
+        ],
+    },
+    {
+        titulo: 'Violencia Simbólica y Discriminación',
+        opciones: [
+            { key: 'trato_diferenciado_genero', label: 'Trato diferenciado por género' },
+            { key: 'trato_discriminatorio_edad', label: 'Trato discriminatorio por edad o condición de serumista' },
+            { key: 'discriminacion_origen_etnico', label: 'Discriminación por origen étnico, idioma o lugar de procedencia' },
+            { key: 'discriminacion_orientacion_identidad', label: 'Discriminación por orientación sexual o identidad de género' },
+            { key: 'estigmatizacion_salud_mental', label: 'Estigmatización por pedir ayuda en salud mental' },
+            { key: 'comentarios_desvalorizantes_profesion', label: 'Comentarios desvalorizantes sobre la profesión médica joven' },
+        ],
+    },
+];
+
 const ProtocoloDetallePage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -129,7 +225,11 @@ const ProtocoloDetallePage = () => {
 
                     // Inicializar formData con datos de la sesión
                     if (protocoloRes.data.data.sesion) {
-                        setFormData(protocoloRes.data.data.sesion);
+                        const sesion = protocoloRes.data.data.sesion;
+                        setFormData({
+                            ...sesion,
+                            disparadores_check: Array.isArray(sesion.disparadores_check) ? sesion.disparadores_check : [],
+                        });
                     }
 
                     // Establecer tab activo según sesión actual solo al cargar por primera vez
@@ -167,6 +267,15 @@ const ProtocoloDetallePage = () => {
         if (fieldErrors.includes(name)) {
             setFieldErrors(prev => prev.filter(f => f !== name));
         }
+    };
+
+    // Toggle de checks de la pregunta 9 (factores desencadenantes)
+    const handleDisparadoresCheck = (key, checked) => {
+        setFormData(prev => {
+            const list = prev.disparadores_check || [];
+            const next = checked ? [...list, key] : list.filter(k => k !== key);
+            return { ...prev, disparadores_check: next };
+        });
     };
 
     // Validar campos antes de enviar
@@ -643,7 +752,77 @@ const ProtocoloDetallePage = () => {
                                     <Field label="6. Ocupación actual y lugar de SERUMS" name="comodo_en_trabajo" value={sesion?.comodo_en_trabajo} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.comodo_en_trabajo} hasError={fieldErrors.includes('comodo_en_trabajo')} />
                                     <Field label="7. Motivo principal de consulta" name="problema_motiva" value={sesion?.problema_motiva} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.problema_motiva} hasError={fieldErrors.includes('problema_motiva')} />
                                     <Field label="8. ¿Cuándo comenzaron los síntomas?" name="tiempo_empezo" value={sesion?.tiempo_empezo} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.tiempo_empezo} hasError={fieldErrors.includes('tiempo_empezo')} />
-                                    <Field label="9. ¿Qué factores desencadenaron la situación actual?" name="disparadores_existe" value={sesion?.disparadores_existe} fullWidth isEditable={isEditable} formData={formData} onChange={handleInputChange} maxLength={fieldLimits.disparadores_existe} hasError={fieldErrors.includes('disparadores_existe')} />
+                                    <div className="col-span-2 mb-4">
+                                        <label className="block text-xs font-semibold text-gray-700 mb-3">9. ¿Qué factores desencadenaron la situación actual?</label>
+                                        <div className="space-y-5">
+                                            {DISPARADORES_OPCIONES.map((grupo) => (
+                                                <div key={grupo.titulo} className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                                                    <div className="bg-[#752568] text-white px-3 py-2 text-xs font-semibold">
+                                                        {grupo.titulo}
+                                                    </div>
+                                                    <div className="p-3 space-y-2">
+                                                        {grupo.opciones.map((op) => {
+                                                            const selected = (formData.disparadores_check || []).includes(op.key);
+                                                            const editable = isEditable;
+                                                            return (
+                                                                <label key={op.key} className={`flex items-start gap-2 cursor-pointer ${!editable ? 'cursor-default' : ''}`}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={selected}
+                                                                        onChange={(e) => editable && handleDisparadoresCheck(op.key, e.target.checked)}
+                                                                        disabled={!editable}
+                                                                        className="mt-1 rounded border-gray-300 text-[#752568] focus:ring-[#752568]"
+                                                                    />
+                                                                    <span className="text-sm text-gray-700">{op.label}</span>
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                                                <label className="flex items-start gap-2 cursor-pointer mb-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={(formData.disparadores_check || []).includes('otros')}
+                                                        onChange={(e) => isEditable && handleDisparadoresCheck('otros', e.target.checked)}
+                                                        disabled={!isEditable}
+                                                        className="mt-1 rounded border-gray-300 text-[#752568] focus:ring-[#752568]"
+                                                    />
+                                                    <span className="text-sm font-medium text-gray-700">Otros:</span>
+                                                </label>
+                                                {(formData.disparadores_check || []).includes('otros') ? (
+                                                    isEditable ? (
+                                                        <div className="relative ml-6">
+                                                            <textarea
+                                                                name="disparadores_existe"
+                                                                value={formData.disparadores_existe || ''}
+                                                                onChange={handleInputChange}
+                                                                className={`w-full p-3 bg-white border rounded-lg text-sm text-gray-900 focus:ring-[#752568] focus:border-[#752568] min-h-[46px] ${
+                                                                    (formData.disparadores_existe || '').length > (fieldLimits.disparadores_existe || 500) || fieldErrors.includes('disparadores_existe')
+                                                                        ? 'border-red-500' : 'border-gray-300'
+                                                                }`}
+                                                                rows={2}
+                                                                placeholder="Especifique otros factores..."
+                                                                maxLength={fieldLimits.disparadores_existe || 500}
+                                                            />
+                                                            <div className="absolute bottom-2 right-2 text-xs text-gray-500">
+                                                                {(formData.disparadores_existe || '').length}/{fieldLimits.disparadores_existe || 500}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="ml-6 p-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 whitespace-pre-wrap">
+                                                            {formData.disparadores_existe || sesion?.disparadores_existe || '-'}
+                                                        </div>
+                                                    )
+                                                ) : (
+                                                    !isEditable && (
+                                                        <div className="ml-6 text-sm text-gray-500">-</div>
+                                                    )
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </AccordionItem>
 
