@@ -21,12 +21,20 @@ const TamizajePage = () => {
     const [filtroTipo, setFiltroTipo] = useState('todos');
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaFin, setFechaFin] = useState('');
+    const [idProceso, setIdProceso] = useState('');
+    const [procesos, setProcesos] = useState([]);
     const [showFiltroDropdown, setShowFiltroDropdown] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
+        axios.get('/dashboard-filtros').then(res => {
+            setProcesos(res.data?.procesos || []);
+        }).catch(() => setProcesos([]));
+    }, []);
+
+    useEffect(() => {
         fetchTamizajes();
-    }, [pagination.current_page, search, filtroTipo, fechaInicio, fechaFin]);
+    }, [pagination.current_page, search, filtroTipo, fechaInicio, fechaFin, idProceso]);
 
     const fetchTamizajes = async () => {
         setLoading(true);
@@ -38,7 +46,8 @@ const TamizajePage = () => {
                     search: search,
                     tipo: filtroTipo !== 'todos' ? filtroTipo : null,
                     fecha_inicio: fechaInicio,
-                    fecha_fin: fechaFin
+                    fecha_fin: fechaFin,
+                    id_proceso: idProceso || undefined
                 }
             });
 
@@ -48,6 +57,8 @@ const TamizajePage = () => {
             }
         } catch (error) {
             console.error('Error al obtener tamizajes:', error);
+            const msg = error.response?.data?.message || error.response?.data?.error || error.message;
+            if (msg) console.error('Detalle del servidor:', msg);
         } finally {
             setLoading(false);
         }
@@ -77,6 +88,11 @@ const TamizajePage = () => {
 
     const handleFechaFinChange = (e) => {
         setFechaFin(e.target.value);
+        setPagination(prev => ({ ...prev, current_page: 1 }));
+    };
+
+    const handleCorteChange = (e) => {
+        setIdProceso(e.target.value);
         setPagination(prev => ({ ...prev, current_page: 1 }));
     };
 
@@ -165,10 +181,11 @@ const TamizajePage = () => {
         return date.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' });
     };
 
-    const handleDownload = async (dni) => {
+    const handleDownload = async (dni, cmp) => {
         setDownloadingDni(dni);
         try {
             const response = await axios.get(`/tamizajes/exportar/${dni}`, {
+                params: { cmp: cmp || undefined },
                 responseType: 'blob',
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -189,7 +206,7 @@ const TamizajePage = () => {
         setDownloadingAll(true);
         try {
             const response = await axios.get('/tamizajes/exportar-todo', {
-                params: { search },
+                params: { search, id_proceso: idProceso || undefined },
                 responseType: 'blob',
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -322,7 +339,19 @@ const TamizajePage = () => {
                                     )}
                                 </div>
 
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap items-center">
+                                    <div className="space-y-1">
+                                        <select
+                                            value={idProceso}
+                                            onChange={handleCorteChange}
+                                            className="w-full min-w-[140px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#752568] focus:border-transparent text-sm"
+                                        >
+                                            <option value="">Todos los cortes</option>
+                                            {procesos.map(p => (
+                                                <option key={p.id_proceso} value={p.id_proceso}>{p.etiqueta}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                     <div className="relative">
                                         <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                         <input
@@ -354,6 +383,7 @@ const TamizajePage = () => {
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-200">
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider w-[100px]">CMP</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider w-[80px]">Corte</th>
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider min-w-[200px]">Nombre del Serumista</th>
                                     <th className="px-4 py-3 text-center text-xs font-bold text-gray-900 uppercase tracking-wider">Completado</th>
                                     <th className="px-4 py-3 text-center text-xs font-bold text-gray-900 uppercase tracking-wider">ASQ</th>
@@ -369,13 +399,13 @@ const TamizajePage = () => {
                             <tbody className="bg-white">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="11" className="px-4 py-8 text-center text-gray-500">
+                                        <td colSpan="12" className="px-4 py-8 text-center text-gray-500">
                                             Cargando...
                                         </td>
                                     </tr>
                                 ) : tamizajes.length === 0 ? (
                                     <tr>
-                                        <td colSpan="11" className="px-4 py-8 text-center text-gray-500">
+                                        <td colSpan="12" className="px-4 py-8 text-center text-gray-500">
                                             No se encontraron resultados
                                         </td>
                                     </tr>
@@ -388,6 +418,11 @@ const TamizajePage = () => {
                                                 {/* CMP */}
                                                 <td className="px-4 py-4 text-sm text-gray-600">
                                                     {tamizaje.cmp || '-'}
+                                                </td>
+
+                                                {/* Corte */}
+                                                <td className="px-4 py-4 text-sm text-gray-600">
+                                                    {tamizaje.corte_etiqueta || '-'}
                                                 </td>
 
                                                 {/* Nombre */}
@@ -530,7 +565,7 @@ const TamizajePage = () => {
                                                 {/* Resultados (Download) */}
                                                 <td className="px-2 py-4 text-center">
                                                     <button
-                                                        onClick={() => handleDownload(tamizaje.dni)}
+                                                        onClick={() => handleDownload(tamizaje.dni, tamizaje.cmp)}
                                                         disabled={downloadingDni === tamizaje.dni}
                                                         className="inline-flex items-center justify-center w-8 h-8 bg-green-500 text-white hover:bg-green-600 rounded-lg transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
                                                     >
