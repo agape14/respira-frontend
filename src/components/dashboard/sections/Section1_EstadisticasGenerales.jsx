@@ -1,7 +1,29 @@
-import { Users, ClipboardCheck, Activity, Calendar } from 'lucide-react';
+import { Users, ClipboardCheck, Activity, Calendar, Download } from 'lucide-react';
+import api from '../../../api/axios';
 
 const Section1_EstadisticasGenerales = ({ data }) => {
     const stats = data?.estadisticas_generales || {};
+    const noClasificados = Math.max(0, (stats.tamizados_total || 0) - (stats.tamizados_remunerados || 0) - (stats.tamizados_equivalentes || 0));
+
+    const handleDescargarNoClasificados = async () => {
+        try {
+            const res = await api.get('/dashboard/tamizados-no-clasificados', {
+                params: { format: 'xlsx' },
+                responseType: 'blob',
+            });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Tamizados_No_Clasificados_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error(e);
+            alert('Error al descargar la lista');
+        }
+    };
 
     return (
         <div className="space-y-3">
@@ -30,6 +52,9 @@ const Section1_EstadisticasGenerales = ({ data }) => {
                             <p className="text-xs text-gray-700">
                                 Equivalentes: <span className="font-bold">{stats.total_equivalentes || 0}</span> ({stats.total_serumistas > 0 ? Math.round(((stats.total_equivalentes || 0) / stats.total_serumistas) * 100) : 0}% del total)
                             </p>
+                            <p className="text-xs text-gray-600">
+                                No clasificados: <span className="font-bold">{stats.total_no_clasificados ?? 0}</span> ({stats.total_serumistas > 0 ? Math.round(((stats.total_no_clasificados ?? 0) / stats.total_serumistas) * 100) : 0}% del total)
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -48,6 +73,9 @@ const Section1_EstadisticasGenerales = ({ data }) => {
                             </p>
                             <p className="text-xs text-gray-700">
                                 Equivalentes: <span className="font-bold">{stats.accedieron_equivalentes || 0}</span> ({stats.accedieron_total > 0 ? Math.round(((stats.accedieron_equivalentes || 0) / stats.accedieron_total) * 100) : 0}% del total)
+                            </p>
+                            <p className="text-xs text-gray-600">
+                                No clasificados: <span className="font-bold">{stats.accedieron_no_clasificados ?? 0}</span> ({stats.accedieron_total > 0 ? Math.round(((stats.accedieron_no_clasificados ?? 0) / stats.accedieron_total) * 100) : 0}% del total)
                             </p>
                         </div>
                     </div>
@@ -69,8 +97,18 @@ const Section1_EstadisticasGenerales = ({ data }) => {
                                 Equivalentes: <span className="font-bold">{stats.tamizados_equivalentes || 0}</span> ({stats.tamizados_total > 0 ? Math.round(((stats.tamizados_equivalentes || 0) / stats.tamizados_total) * 100) : 0}% del total)
                             </p>
                             <p className="text-xs text-gray-600">
-                                No clasificados: <span className="font-bold">{Math.max(0, (stats.tamizados_total || 0) - (stats.tamizados_remunerados || 0) - (stats.tamizados_equivalentes || 0))}</span> ({stats.tamizados_total > 0 ? Math.round((Math.max(0, (stats.tamizados_total || 0) - (stats.tamizados_remunerados || 0) - (stats.tamizados_equivalentes || 0))) / stats.tamizados_total * 100) : 0}% del total)
+                                No clasificados: <span className="font-bold">{noClasificados}</span> ({stats.tamizados_total > 0 ? Math.round((noClasificados / stats.tamizados_total) * 100) : 0}% del total)
                             </p>
+                            {noClasificados > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={handleDescargarNoClasificados}
+                                    className="mt-2 flex items-center gap-1 text-xs text-green-700 hover:text-green-800 hover:underline"
+                                >
+                                    <Download className="w-3.5 h-3.5" />
+                                    Descargar lista Excel
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
