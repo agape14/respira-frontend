@@ -68,6 +68,9 @@ const Section1_EstadisticasGenerales = ({ data }) => {
                             <p className="text-xs text-gray-700">
                                 Equivalentes: <span className="font-bold">{stats.tamizados_equivalentes || 0}</span> ({stats.tamizados_total > 0 ? Math.round(((stats.tamizados_equivalentes || 0) / stats.tamizados_total) * 100) : 0}% del total)
                             </p>
+                            <p className="text-xs text-gray-600">
+                                No clasificados: <span className="font-bold">{Math.max(0, (stats.tamizados_total || 0) - (stats.tamizados_remunerados || 0) - (stats.tamizados_equivalentes || 0))}</span> ({stats.tamizados_total > 0 ? Math.round((Math.max(0, (stats.tamizados_total || 0) - (stats.tamizados_remunerados || 0) - (stats.tamizados_equivalentes || 0))) / stats.tamizados_total * 100) : 0}% del total)
+                            </p>
                         </div>
                     </div>
                 </div>
