@@ -86,53 +86,70 @@ const Section2_Derivaciones = ({ data }) => {
                     </div>
                     <div className="pl-8">
                         <p className="text-[#3b82f6] font-medium text-sm mb-3">Derivaciones desde Tamizaje</p>
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs text-gray-700 flex items-center gap-1">
-                                    <ClipboardCheck className="w-3 h-3" /> ASQ:
-                                </span>
-                                <span className="text-sm font-bold text-gray-800">
-                                    {stats.derivaciones_tamizaje_asq || 0} ({stats.total_casos_derivados > 0 ? Math.round(((stats.derivaciones_tamizaje_asq || 0) / stats.total_casos_derivados) * 100) : 0}%)
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs text-gray-700 flex items-center gap-1">
-                                    <ClipboardCheck className="w-3 h-3" /> PHQ:
-                                </span>
-                                <span className="text-sm font-bold text-gray-800">
-                                    {stats.derivaciones_tamizaje_phq || 0} ({stats.total_casos_derivados > 0 ? Math.round(((stats.derivaciones_tamizaje_phq || 0) / stats.total_casos_derivados) * 100) : 0}%)
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs text-gray-700 flex items-center gap-1">
-                                    <ClipboardCheck className="w-3 h-3" /> GAD:
-                                </span>
-                                <span className="text-sm font-bold text-gray-800">
-                                    {stats.derivaciones_tamizaje_gad || 0} ({stats.total_casos_derivados > 0 ? Math.round(((stats.derivaciones_tamizaje_gad || 0) / stats.total_casos_derivados) * 100) : 0}%)
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs text-gray-700 flex items-center gap-1">
-                                    <ClipboardCheck className="w-3 h-3" /> MBI:
-                                </span>
-                                <span className="text-sm font-bold text-gray-800">
-                                    {stats.derivaciones_tamizaje_mbi || 0} ({stats.total_casos_derivados > 0 ? Math.round(((stats.derivaciones_tamizaje_mbi || 0) / stats.total_casos_derivados) * 100) : 0}%)
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs text-gray-700 flex items-center gap-1">
-                                    <ClipboardCheck className="w-3 h-3" /> AUDIT:
-                                </span>
-                                <span className="text-sm font-bold text-gray-800">
-                                    {stats.derivaciones_tamizaje_audit || 0} ({stats.total_casos_derivados > 0 ? Math.round(((stats.derivaciones_tamizaje_audit || 0) / stats.total_casos_derivados) * 100) : 0}%)
-                                </span>
-                            </div>
-                        </div>
-                        <div className="border-t border-blue-200 pt-2 mt-3">
-                            <p className="text-xs font-bold text-gray-800 text-center">
-                                Total {stats.total_casos_derivados || 0} (100%)
-                            </p>
-                        </div>
+                        {(() => {
+                            const asq = stats.derivaciones_tamizaje_asq || 0;
+                            const phq = stats.derivaciones_tamizaje_phq || 0;
+                            const gad = stats.derivaciones_tamizaje_gad || 0;
+                            const mbi = stats.derivaciones_tamizaje_mbi || 0;
+                            const audit = stats.derivaciones_tamizaje_audit || 0;
+                            const totalEvaluaciones = asq + phq + gad + mbi + audit;
+                            const totalTamizados = stats.total_casos_derivados || 0;
+                            const pct = (n) => totalEvaluaciones > 0 ? Math.round((n / totalEvaluaciones) * 100) : 0;
+                            return (
+                                <>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-gray-700 flex items-center gap-1">
+                                                <ClipboardCheck className="w-3 h-3" /> ASQ:
+                                            </span>
+                                            <span className="text-sm font-bold text-gray-800">
+                                                {asq} ({pct(asq)}%)
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-gray-700 flex items-center gap-1">
+                                                <ClipboardCheck className="w-3 h-3" /> PHQ:
+                                            </span>
+                                            <span className="text-sm font-bold text-gray-800">
+                                                {phq} ({pct(phq)}%)
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-gray-700 flex items-center gap-1">
+                                                <ClipboardCheck className="w-3 h-3" /> GAD:
+                                            </span>
+                                            <span className="text-sm font-bold text-gray-800">
+                                                {gad} ({pct(gad)}%)
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-gray-700 flex items-center gap-1">
+                                                <ClipboardCheck className="w-3 h-3" /> MBI:
+                                            </span>
+                                            <span className="text-sm font-bold text-gray-800">
+                                                {mbi} ({pct(mbi)}%)
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-gray-700 flex items-center gap-1">
+                                                <ClipboardCheck className="w-3 h-3" /> AUDIT:
+                                            </span>
+                                            <span className="text-sm font-bold text-gray-800">
+                                                {audit} ({pct(audit)}%)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="border-t border-blue-200 pt-2 mt-3 space-y-0.5">
+                                        <p className="text-xs font-bold text-gray-800 text-center">
+                                            Total {totalEvaluaciones} derivaciones (100%)
+                                        </p>
+                                        <p className="text-xs text-gray-600 text-center">
+                                            {totalTamizados} tamizados únicos
+                                        </p>
+                                    </div>
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
             </div>

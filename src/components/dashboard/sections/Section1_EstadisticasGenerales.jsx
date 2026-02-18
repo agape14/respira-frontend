@@ -1,6 +1,18 @@
 import { Users, ClipboardCheck, Activity, Calendar, Download } from 'lucide-react';
 import api from '../../../api/axios';
 
+/** Porcentajes que suman exactamente 100% (el último recibe el ajuste por redondeo) */
+const pctSum100 = (values) => {
+    const total = values.reduce((a, b) => a + b, 0);
+    if (total === 0) return values.map(() => 0);
+    const n = values.length;
+    const pct = values.map((v) => Math.round((v / total) * 100));
+    const sum = pct.reduce((a, b) => a + b, 0);
+    const diff = 100 - sum;
+    if (diff !== 0 && n > 0) pct[n - 1] += diff;
+    return pct;
+};
+
 const Section1_EstadisticasGenerales = ({ data }) => {
     const stats = data?.estadisticas_generales || {};
     const noClasificados = Math.max(0, (stats.tamizados_total || 0) - (stats.tamizados_remunerados || 0) - (stats.tamizados_equivalentes || 0));
@@ -46,15 +58,26 @@ const Section1_EstadisticasGenerales = ({ data }) => {
                         <p className="text-[#a855f7] font-medium text-sm mb-1">Total de Usuarios</p>
                         <p className="text-3xl font-bold text-gray-800">{stats.total_serumistas || 0}</p>
                         <div className="mt-3 space-y-0.5">
-                            <p className="text-xs text-gray-700">
-                                Remunerados: <span className="font-bold">{stats.total_remunerados || 0}</span> ({stats.total_serumistas > 0 ? Math.round(((stats.total_remunerados || 0) / stats.total_serumistas) * 100) : 0}% del total)
-                            </p>
-                            <p className="text-xs text-gray-700">
-                                Equivalentes: <span className="font-bold">{stats.total_equivalentes || 0}</span> ({stats.total_serumistas > 0 ? Math.round(((stats.total_equivalentes || 0) / stats.total_serumistas) * 100) : 0}% del total)
-                            </p>
-                            <p className="text-xs text-gray-600">
-                                No clasificados: <span className="font-bold">{stats.total_no_clasificados ?? 0}</span> ({stats.total_serumistas > 0 ? Math.round(((stats.total_no_clasificados ?? 0) / stats.total_serumistas) * 100) : 0}% del total)
-                            </p>
+                            {(() => {
+                                const [pRem, pEquiv, pNoClas] = pctSum100([
+                                    stats.total_remunerados || 0,
+                                    stats.total_equivalentes || 0,
+                                    stats.total_no_clasificados ?? 0,
+                                ]);
+                                return (
+                                    <>
+                                        <p className="text-xs text-gray-700">
+                                            Remunerados: <span className="font-bold">{stats.total_remunerados || 0}</span> ({pRem}% del total)
+                                        </p>
+                                        <p className="text-xs text-gray-700">
+                                            Equivalentes: <span className="font-bold">{stats.total_equivalentes || 0}</span> ({pEquiv}% del total)
+                                        </p>
+                                        <p className="text-xs text-gray-600">
+                                            No clasificados: <span className="font-bold">{stats.total_no_clasificados ?? 0}</span> ({pNoClas}% del total)
+                                        </p>
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
@@ -68,15 +91,26 @@ const Section1_EstadisticasGenerales = ({ data }) => {
                         <p className="text-[#3b82f6] font-medium text-sm mb-1">Accedieron</p>
                         <p className="text-3xl font-bold text-gray-800">{stats.accedieron_total || 0}</p>
                         <div className="mt-3 space-y-0.5">
-                            <p className="text-xs text-gray-700">
-                                Remunerados: <span className="font-bold">{stats.accedieron_remunerados || 0}</span> ({stats.accedieron_total > 0 ? Math.round(((stats.accedieron_remunerados || 0) / stats.accedieron_total) * 100) : 0}% del total)
-                            </p>
-                            <p className="text-xs text-gray-700">
-                                Equivalentes: <span className="font-bold">{stats.accedieron_equivalentes || 0}</span> ({stats.accedieron_total > 0 ? Math.round(((stats.accedieron_equivalentes || 0) / stats.accedieron_total) * 100) : 0}% del total)
-                            </p>
-                            <p className="text-xs text-gray-600">
-                                No clasificados: <span className="font-bold">{stats.accedieron_no_clasificados ?? 0}</span> ({stats.accedieron_total > 0 ? Math.round(((stats.accedieron_no_clasificados ?? 0) / stats.accedieron_total) * 100) : 0}% del total)
-                            </p>
+                            {(() => {
+                                const [pRem, pEquiv, pNoClas] = pctSum100([
+                                    stats.accedieron_remunerados || 0,
+                                    stats.accedieron_equivalentes || 0,
+                                    stats.accedieron_no_clasificados ?? 0,
+                                ]);
+                                return (
+                                    <>
+                                        <p className="text-xs text-gray-700">
+                                            Remunerados: <span className="font-bold">{stats.accedieron_remunerados || 0}</span> ({pRem}% del total)
+                                        </p>
+                                        <p className="text-xs text-gray-700">
+                                            Equivalentes: <span className="font-bold">{stats.accedieron_equivalentes || 0}</span> ({pEquiv}% del total)
+                                        </p>
+                                        <p className="text-xs text-gray-600">
+                                            No clasificados: <span className="font-bold">{stats.accedieron_no_clasificados ?? 0}</span> ({pNoClas}% del total)
+                                        </p>
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
@@ -90,15 +124,26 @@ const Section1_EstadisticasGenerales = ({ data }) => {
                         <p className="text-[#22c55e] font-medium text-sm mb-1">Tamizados</p>
                         <p className="text-3xl font-bold text-gray-800">{stats.tamizados_total || 0}</p>
                         <div className="mt-3 space-y-0.5">
-                            <p className="text-xs text-gray-700">
-                                Remunerados: <span className="font-bold">{stats.tamizados_remunerados || 0}</span> ({stats.tamizados_total > 0 ? Math.round(((stats.tamizados_remunerados || 0) / stats.tamizados_total) * 100) : 0}% del total)
-                            </p>
-                            <p className="text-xs text-gray-700">
-                                Equivalentes: <span className="font-bold">{stats.tamizados_equivalentes || 0}</span> ({stats.tamizados_total > 0 ? Math.round(((stats.tamizados_equivalentes || 0) / stats.tamizados_total) * 100) : 0}% del total)
-                            </p>
-                            <p className="text-xs text-gray-600">
-                                No clasificados: <span className="font-bold">{noClasificados}</span> ({stats.tamizados_total > 0 ? Math.round((noClasificados / stats.tamizados_total) * 100) : 0}% del total)
-                            </p>
+                            {(() => {
+                                const [pRem, pEquiv, pNoClas] = pctSum100([
+                                    stats.tamizados_remunerados || 0,
+                                    stats.tamizados_equivalentes || 0,
+                                    noClasificados,
+                                ]);
+                                return (
+                                    <>
+                                        <p className="text-xs text-gray-700">
+                                            Remunerados: <span className="font-bold">{stats.tamizados_remunerados || 0}</span> ({pRem}% del total)
+                                        </p>
+                                        <p className="text-xs text-gray-700">
+                                            Equivalentes: <span className="font-bold">{stats.tamizados_equivalentes || 0}</span> ({pEquiv}% del total)
+                                        </p>
+                                        <p className="text-xs text-gray-600">
+                                            No clasificados: <span className="font-bold">{noClasificados}</span> ({pNoClas}% del total)
+                                        </p>
+                                    </>
+                                );
+                            })()}
                             {noClasificados > 0 && (
                                 <button
                                     type="button"
