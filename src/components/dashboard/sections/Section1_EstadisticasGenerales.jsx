@@ -59,22 +59,25 @@ const Section1_EstadisticasGenerales = ({ data }) => {
                         <p className="text-3xl font-bold text-gray-800">{stats.total_serumistas || 0}</p>
                         <div className="mt-3 space-y-0.5">
                             {(() => {
-                                const [pRem, pEquiv, pNoClas] = pctSum100([
-                                    stats.total_remunerados || 0,
-                                    stats.total_equivalentes || 0,
-                                    stats.total_no_clasificados ?? 0,
-                                ]);
+                                const rem = stats.total_remunerados || 0;
+                                const equiv = stats.total_equivalentes || 0;
+                                const noClas = stats.total_no_clasificados ?? 0;
+                                const [pRem, pEquiv, pNoClas] = noClas > 0
+                                    ? pctSum100([rem, equiv, noClas])
+                                    : pctSum100([rem, equiv]);
                                 return (
                                     <>
                                         <p className="text-xs text-gray-700">
-                                            Remunerados: <span className="font-bold">{stats.total_remunerados || 0}</span> ({pRem}% del total)
+                                            Remunerados: <span className="font-bold">{rem}</span> ({pRem}% del total)
                                         </p>
                                         <p className="text-xs text-gray-700">
-                                            Equivalentes: <span className="font-bold">{stats.total_equivalentes || 0}</span> ({pEquiv}% del total)
+                                            Equivalentes: <span className="font-bold">{equiv}</span> ({pEquiv}% del total)
                                         </p>
-                                        <p className="text-xs text-gray-600">
-                                            No clasificados: <span className="font-bold">{stats.total_no_clasificados ?? 0}</span> ({pNoClas}% del total)
-                                        </p>
+                                        {noClas > 0 && (
+                                            <p className="text-xs text-gray-600">
+                                                No clasificados: <span className="font-bold">{noClas}</span> ({pNoClas}% del total)
+                                            </p>
+                                        )}
                                     </>
                                 );
                             })()}
@@ -169,10 +172,10 @@ const Section1_EstadisticasGenerales = ({ data }) => {
                         <div className="mt-3 pt-2 border-t border-orange-200">
                             <p className="text-orange-500 text-xs font-semibold mb-1">Intervención Breve</p>
                             <p className="text-sm font-bold text-gray-800">
-                                Atendidas: <span className="text-green-600">{stats.citas_intervencion_breve_atendidas || 0}</span>
+                                Atendidas: <span className="text-green-600">{stats.citas_atendidas ?? stats.citas_intervencion_breve_atendidas ?? 0}</span>
                             </p>
                             <p className="text-xs text-gray-600 mt-0.5">
-                                {stats.citas_registradas > 0 ? Math.round(((stats.citas_intervencion_breve_atendidas || 0) / stats.citas_registradas) * 100) : 0}%
+                                {stats.citas_registradas > 0 ? Math.round(((stats.citas_atendidas ?? stats.citas_intervencion_breve_atendidas ?? 0) / stats.citas_registradas) * 100) : 0}%
                             </p>
                         </div>
                     </div>
