@@ -87,13 +87,14 @@ const Section2_Derivaciones = ({ data }) => {
                     <div className="pl-8">
                         <p className="text-[#3b82f6] font-medium text-sm mb-3">Derivaciones desde Tamizaje</p>
                         {(() => {
-                            const asq = stats.derivaciones_tamizaje_asq || 0;
-                            const phq = stats.derivaciones_tamizaje_phq || 0;
-                            const gad = stats.derivaciones_tamizaje_gad || 0;
-                            const mbi = stats.derivaciones_tamizaje_mbi || 0;
-                            const audit = stats.derivaciones_tamizaje_audit || 0;
+                            const toNum = (v) => Number(v) || 0;
+                            const asq = toNum(stats.derivaciones_tamizaje_asq);
+                            const phq = toNum(stats.derivaciones_tamizaje_phq);
+                            const gad = toNum(stats.derivaciones_tamizaje_gad);
+                            const mbi = toNum(stats.derivaciones_tamizaje_mbi);
+                            const audit = toNum(stats.derivaciones_tamizaje_audit);
                             const totalEvaluaciones = asq + phq + gad + mbi + audit;
-                            const totalTamizados = stats.total_casos_derivados || 0;
+                            const totalTamizados = toNum(stats.total_casos_derivados);
                             const pct = (n) => totalEvaluaciones > 0 ? Math.round((n / totalEvaluaciones) * 100) : 0;
                             return (
                                 <>
