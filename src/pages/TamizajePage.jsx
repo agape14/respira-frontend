@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/layouts/MainLayout';
 import axios from '../api/axios';
-import { FileText, Download, Calendar, Search, ChevronLeft, ChevronRight, ChevronDown, Loader2 } from 'lucide-react';
+import { FileText, Download, Calendar, Search, ChevronLeft, ChevronRight, ChevronDown, Loader2, X } from 'lucide-react';
 
 const TamizajePage = () => {
     const [tamizajes, setTamizajes] = useState([]);
@@ -18,6 +18,7 @@ const TamizajePage = () => {
         to: 0
     });
     const [search, setSearch] = useState('');
+    const [searchTipo, setSearchTipo] = useState('nombres'); // 'cmp' | 'nombres' | 'celular'
     const [filtroTipo, setFiltroTipo] = useState('todos');
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaFin, setFechaFin] = useState('');
@@ -32,9 +33,14 @@ const TamizajePage = () => {
         }).catch(() => setProcesos([]));
     }, []);
 
+    // Valor que realmente se envía al API: solo si cumple mínimo de caracteres por tipo
+    const searchVal = search.trim();
+    const minLen = searchTipo === 'cmp' ? 5 : searchTipo === 'celular' ? 8 : 4;
+    const effectiveSearch = searchVal.length >= minLen ? searchVal : '';
+
     useEffect(() => {
         fetchTamizajes();
-    }, [pagination.current_page, search, filtroTipo, fechaInicio, fechaFin, idProceso]);
+    }, [pagination.current_page, effectiveSearch, searchTipo, filtroTipo, fechaInicio, fechaFin, idProceso]);
 
     const fetchTamizajes = async () => {
         setLoading(true);
@@ -43,7 +49,8 @@ const TamizajePage = () => {
                 params: {
                     page: pagination.current_page,
                     per_page: pagination.per_page,
-                    search: search,
+                    search: effectiveSearch,
+                    search_tipo: searchTipo,
                     tipo: filtroTipo !== 'todos' ? filtroTipo : null,
                     fecha_inicio: fechaInicio,
                     fecha_fin: fechaFin,
@@ -65,7 +72,38 @@ const TamizajePage = () => {
     };
 
     const handleSearch = (e) => {
-        setSearch(e.target.value);
+        const value = e.target.value;
+        setSearch(value);
+        // Solo resetear página cuando el valor cumple el mínimo y se disparará la búsqueda
+        const minLen = searchTipo === 'cmp' ? 5 : searchTipo === 'celular' ? 8 : 4;
+        if (value.trim().length >= minLen) {
+            setPagination(prev => ({ ...prev, current_page: 1 }));
+        }
+    };
+
+    const handleSearchTipoChange = (e) => {
+        setSearchTipo(e.target.value);
+        setPagination(prev => ({ ...prev, current_page: 1 }));
+    };
+
+    const getSearchPlaceholder = () => {
+        switch (searchTipo) {
+            case 'cmp': return 'Ingrese CMP...';
+            case 'celular': return 'Ingrese celular (9 dígitos)...';
+            default: return 'Ingrese nombres o apellidos...';
+        }
+    };
+
+    const getSearchMinLength = () => {
+        switch (searchTipo) {
+            case 'cmp': return 5;
+            case 'celular': return 8;
+            default: return 4; // nombres y apellidos
+        }
+    };
+
+    const handleClearSearch = () => {
+        setSearch('');
         setPagination(prev => ({ ...prev, current_page: 1 }));
     };
 
@@ -205,8 +243,15 @@ const TamizajePage = () => {
     const handleDownloadAll = async () => {
         setDownloadingAll(true);
         try {
+            const searchVal = search.trim();
+            const minLen = getSearchMinLength();
+            const searchActive = searchVal.length >= minLen;
             const response = await axios.get('/tamizajes/exportar-todo', {
-                params: { search, id_proceso: idProceso || undefined },
+                params: {
+                    search: searchActive ? searchVal : '',
+                    search_tipo: searchTipo,
+                    id_proceso: idProceso || undefined
+                },
                 responseType: 'blob',
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -265,17 +310,37 @@ const TamizajePage = () => {
                     {/* Barra de filtros */}
                     <div className="p-6 border-b border-gray-200 bg-gray-50">
                         <div className="flex flex-col md:flex-row gap-4">
-                            {/* Búsqueda */}
-                            <div className="flex-1">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            {/* Búsqueda: tipo + valor (desde 3er carácter) */}
+                            <div className="flex flex-col sm:flex-row gap-2 flex-1">
+                                <select
+                                    value={searchTipo}
+                                    onChange={handleSearchTipoChange}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none min-w-[160px]"
+                                >
+                                    <option value="nombres">Nombres y apellidos</option>
+                                    <option value="cmp">CMP</option>
+                                    <option value="celular">Celular</option>
+                                </select>
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                                     <input
                                         type="text"
                                         value={search}
                                         onChange={handleSearch}
-                                        placeholder="Buscar por nombre o CMP..."
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                                        placeholder={getSearchPlaceholder()}
+                                        className={`w-full pl-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none ${search ? 'pr-10' : 'pr-4'}`}
                                     />
+                                    {search && (
+                                        <button
+                                            type="button"
+                                            onClick={handleClearSearch}
+                                            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                                            title="Borrar búsqueda"
+                                            aria-label="Borrar búsqueda"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
