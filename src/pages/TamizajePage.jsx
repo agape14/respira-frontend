@@ -18,13 +18,23 @@ const TamizajePage = () => {
         to: 0
     });
     const [search, setSearch] = useState('');
-    const [searchTipo, setSearchTipo] = useState('nombres'); // 'cmp' | 'nombres' | 'celular'
+    const [searchTipo, setSearchTipo] = useState('nombres'); // 'cmp' | 'nombres' | 'celular' | 'diresa_geresa_diris' | 'institucion' | 'departamento_provincia_distrito'
     const [filtroTipo, setFiltroTipo] = useState('todos');
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaFin, setFechaFin] = useState('');
     const [idProceso, setIdProceso] = useState('');
     const [procesos, setProcesos] = useState([]);
     const [showFiltroDropdown, setShowFiltroDropdown] = useState(false);
+    const [filtroDiresa, setFiltroDiresa] = useState('');
+    const [filtroInstitucion, setFiltroInstitucion] = useState('');
+    const [filtroDepartamento, setFiltroDepartamento] = useState('');
+    const [filtroProvincia, setFiltroProvincia] = useState('');
+    const [filtroDistrito, setFiltroDistrito] = useState('');
+    const [diresas, setDiresas] = useState([]);
+    const [instituciones, setInstituciones] = useState([]);
+    const [departamentos, setDepartamentos] = useState([]);
+    const [provincias, setProvincias] = useState([]);
+    const [distritos, setDistritos] = useState([]);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -33,30 +43,80 @@ const TamizajePage = () => {
         }).catch(() => setProcesos([]));
     }, []);
 
-    // Valor que realmente se envía al API: solo si cumple mínimo de caracteres por tipo
+    useEffect(() => {
+        axios.get('/tamizajes-filtros').then(res => {
+            setDiresas(res.data?.diresas || []);
+            setInstituciones(res.data?.instituciones || []);
+            setDepartamentos(res.data?.departamentos || []);
+        }).catch(() => {
+            setDiresas([]);
+            setInstituciones([]);
+            setDepartamentos([]);
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!filtroDepartamento) {
+            setProvincias([]);
+            setFiltroProvincia('');
+            setDistritos([]);
+            setFiltroDistrito('');
+            return;
+        }
+        axios.get('/tamizajes-filtros/provincias', { params: { departamento: filtroDepartamento } })
+            .then(res => {
+                setProvincias(res.data?.provincias || []);
+                setFiltroProvincia('');
+                setDistritos([]);
+                setFiltroDistrito('');
+            })
+            .catch(() => setProvincias([]));
+    }, [filtroDepartamento]);
+
+    useEffect(() => {
+        if (!filtroDepartamento || !filtroProvincia) {
+            setDistritos([]);
+            setFiltroDistrito('');
+            return;
+        }
+        axios.get('/tamizajes-filtros/distritos', { params: { departamento: filtroDepartamento, provincia: filtroProvincia } })
+            .then(res => {
+                setDistritos(res.data?.distritos || []);
+                setFiltroDistrito('');
+            })
+            .catch(() => setDistritos([]));
+    }, [filtroDepartamento, filtroProvincia]);
+
+    // Valor que realmente se envía al API: solo si cumple mínimo de caracteres por tipo (para nombres/cmp/celular)
     const searchVal = search.trim();
     const minLen = searchTipo === 'cmp' ? 5 : searchTipo === 'celular' ? 8 : 4;
-    const effectiveSearch = searchVal.length >= minLen ? searchVal : '';
+    const effectiveSearch = (searchTipo === 'nombres' || searchTipo === 'cmp' || searchTipo === 'celular') && searchVal.length >= minLen ? searchVal : '';
 
     useEffect(() => {
         fetchTamizajes();
-    }, [pagination.current_page, effectiveSearch, searchTipo, filtroTipo, fechaInicio, fechaFin, idProceso]);
+    }, [pagination.current_page, effectiveSearch, searchTipo, filtroTipo, fechaInicio, fechaFin, idProceso, filtroDiresa, filtroInstitucion, filtroDepartamento, filtroProvincia, filtroDistrito]);
 
     const fetchTamizajes = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('/tamizajes', {
-                params: {
-                    page: pagination.current_page,
-                    per_page: pagination.per_page,
-                    search: effectiveSearch,
-                    search_tipo: searchTipo,
-                    tipo: filtroTipo !== 'todos' ? filtroTipo : null,
-                    fecha_inicio: fechaInicio,
-                    fecha_fin: fechaFin,
-                    id_proceso: idProceso || undefined
-                }
-            });
+            const params = {
+                page: pagination.current_page,
+                per_page: pagination.per_page,
+                search: effectiveSearch,
+                search_tipo: searchTipo,
+                tipo: filtroTipo !== 'todos' ? filtroTipo : null,
+                fecha_inicio: fechaInicio,
+                fecha_fin: fechaFin,
+                id_proceso: idProceso || undefined
+            };
+            if (searchTipo === 'diresa_geresa_diris' && filtroDiresa) params.filtro_diresa_geresa_diris = filtroDiresa;
+            if (searchTipo === 'institucion' && filtroInstitucion) params.filtro_institucion = filtroInstitucion;
+            if (searchTipo === 'departamento_provincia_distrito') {
+                if (filtroDepartamento) params.filtro_departamento = filtroDepartamento;
+                if (filtroProvincia) params.filtro_provincia = filtroProvincia;
+                if (filtroDistrito) params.filtro_distrito = filtroDistrito;
+            }
+            const response = await axios.get('/tamizajes', { params });
 
             if (response.data.success) {
                 setTamizajes(response.data.data);
@@ -82,7 +142,13 @@ const TamizajePage = () => {
     };
 
     const handleSearchTipoChange = (e) => {
-        setSearchTipo(e.target.value);
+        const value = e.target.value;
+        setSearchTipo(value);
+        setFiltroDiresa('');
+        setFiltroInstitucion('');
+        setFiltroDepartamento('');
+        setFiltroProvincia('');
+        setFiltroDistrito('');
         setPagination(prev => ({ ...prev, current_page: 1 }));
     };
 
@@ -90,6 +156,9 @@ const TamizajePage = () => {
         switch (searchTipo) {
             case 'cmp': return 'Ingrese CMP...';
             case 'celular': return 'Ingrese celular (9 dígitos)...';
+            case 'diresa_geresa_diris': return 'Seleccione DIRESA/GERESA/DIRIS';
+            case 'institucion': return 'Seleccione institución';
+            case 'departamento_provincia_distrito': return 'Seleccione departamento, provincia y distrito';
             default: return 'Ingrese nombres o apellidos...';
         }
     };
@@ -244,14 +313,22 @@ const TamizajePage = () => {
         setDownloadingAll(true);
         try {
             const searchVal = search.trim();
-            const minLen = getSearchMinLength();
+            const minLen = (searchTipo === 'nombres' || searchTipo === 'cmp' || searchTipo === 'celular') ? getSearchMinLength() : 0;
             const searchActive = searchVal.length >= minLen;
+            const params = {
+                search: searchActive ? searchVal : '',
+                search_tipo: searchTipo,
+                id_proceso: idProceso || undefined
+            };
+            if (searchTipo === 'diresa_geresa_diris' && filtroDiresa) params.filtro_diresa_geresa_diris = filtroDiresa;
+            if (searchTipo === 'institucion' && filtroInstitucion) params.filtro_institucion = filtroInstitucion;
+            if (searchTipo === 'departamento_provincia_distrito') {
+                if (filtroDepartamento) params.filtro_departamento = filtroDepartamento;
+                if (filtroProvincia) params.filtro_provincia = filtroProvincia;
+                if (filtroDistrito) params.filtro_distrito = filtroDistrito;
+            }
             const response = await axios.get('/tamizajes/exportar-todo', {
-                params: {
-                    search: searchActive ? searchVal : '',
-                    search_tipo: searchTipo,
-                    id_proceso: idProceso || undefined
-                },
+                params,
                 responseType: 'blob',
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -310,8 +387,8 @@ const TamizajePage = () => {
                     {/* Barra de filtros */}
                     <div className="p-6 border-b border-gray-200 bg-gray-50">
                         <div className="flex flex-col md:flex-row gap-4">
-                            {/* Búsqueda: tipo + valor (desde 3er carácter) */}
-                            <div className="flex flex-col sm:flex-row gap-2 flex-1">
+                            {/* Búsqueda: tipo + valor o selects de filtro */}
+                            <div className="flex flex-col sm:flex-row gap-2 flex-1 flex-wrap">
                                 <select
                                     value={searchTipo}
                                     onChange={handleSearchTipoChange}
@@ -320,28 +397,94 @@ const TamizajePage = () => {
                                     <option value="nombres">Nombres y apellidos</option>
                                     <option value="cmp">CMP</option>
                                     <option value="celular">Celular</option>
+                                    <option value="diresa_geresa_diris">DIRESA / GERESA / DIRIS</option>
+                                    <option value="institucion">Institución</option>
+                                    <option value="departamento_provincia_distrito">Departamento / Provincia / Distrito</option>
                                 </select>
-                                <div className="relative flex-1">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                                    <input
-                                        type="text"
-                                        value={search}
-                                        onChange={handleSearch}
-                                        placeholder={getSearchPlaceholder()}
-                                        className={`w-full pl-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none ${search ? 'pr-10' : 'pr-4'}`}
-                                    />
-                                    {search && (
-                                        <button
-                                            type="button"
-                                            onClick={handleClearSearch}
-                                            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
-                                            title="Borrar búsqueda"
-                                            aria-label="Borrar búsqueda"
+
+                                {searchTipo === 'nombres' || searchTipo === 'cmp' || searchTipo === 'celular' ? (
+                                    <div className="relative flex-1 min-w-[200px]">
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                                        <input
+                                            type="text"
+                                            value={search}
+                                            onChange={handleSearch}
+                                            placeholder={getSearchPlaceholder()}
+                                            className={`w-full pl-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none ${search ? 'pr-10' : 'pr-4'}`}
+                                        />
+                                        {search && (
+                                            <button
+                                                type="button"
+                                                onClick={handleClearSearch}
+                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                                                title="Borrar búsqueda"
+                                                aria-label="Borrar búsqueda"
+                                            >
+                                                <X className="w-5 h-5" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : searchTipo === 'diresa_geresa_diris' ? (
+                                    <select
+                                        value={filtroDiresa}
+                                        onChange={(e) => { setFiltroDiresa(e.target.value); setPagination(prev => ({ ...prev, current_page: 1 })); }}
+                                        className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none min-w-[200px] flex-1"
+                                    >
+                                        <option value="">Todos</option>
+                                        {diresas.map((d) => (
+                                            <option key={d} value={d}>{d}</option>
+                                        ))}
+                                    </select>
+                                ) : searchTipo === 'institucion' ? (
+                                    <select
+                                        value={filtroInstitucion}
+                                        onChange={(e) => { setFiltroInstitucion(e.target.value); setPagination(prev => ({ ...prev, current_page: 1 })); }}
+                                        className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none min-w-[200px] flex-1"
+                                    >
+                                        <option value="">Todos</option>
+                                        {instituciones.map((inst) => (
+                                            <option key={inst} value={inst}>{inst}</option>
+                                        ))}
+                                    </select>
+                                ) : searchTipo === 'departamento_provincia_distrito' ? (
+                                    <div className="flex gap-2 flex-1 flex-wrap items-center">
+                                        <select
+                                            value={filtroDepartamento}
+                                            onChange={(e) => { setFiltroDepartamento(e.target.value); setPagination(prev => ({ ...prev, current_page: 1 })); }}
+                                            className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none min-w-[140px]"
+                                            title="Departamento"
                                         >
-                                            <X className="w-5 h-5" />
-                                        </button>
-                                    )}
-                                </div>
+                                            <option value="">Departamento</option>
+                                            {departamentos.map((d) => (
+                                                <option key={d} value={d}>{d}</option>
+                                            ))}
+                                        </select>
+                                        <select
+                                            value={filtroProvincia}
+                                            onChange={(e) => { setFiltroProvincia(e.target.value); setPagination(prev => ({ ...prev, current_page: 1 })); }}
+                                            className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none min-w-[140px]"
+                                            title="Provincia"
+                                            disabled={!filtroDepartamento}
+                                        >
+                                            <option value="">Provincia</option>
+                                            {provincias.map((p) => (
+                                                <option key={p} value={p}>{p}</option>
+                                            ))}
+                                        </select>
+                                        <select
+                                            value={filtroDistrito}
+                                            onChange={(e) => { setFiltroDistrito(e.target.value); setPagination(prev => ({ ...prev, current_page: 1 })); }}
+                                            className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none min-w-[140px]"
+                                            title="Distrito"
+                                            disabled={!filtroProvincia}
+                                        >
+                                            <option value="">Distrito</option>
+                                            {distritos.map((d) => (
+                                                <option key={d} value={d}>{d}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                ) : null}
                             </div>
 
                             {/* Filtros adicionales */}
