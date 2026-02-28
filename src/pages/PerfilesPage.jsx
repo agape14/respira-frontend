@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import MainLayout from '../components/layouts/MainLayout';
 import {
     Plus, Edit, Trash2, Shield, Settings, X, Save, AlertCircle
@@ -293,17 +294,15 @@ const PerfilesPage = () => {
                     </table>
                 </div>
 
-                {/* Modal Crear/Editar Perfil */}
-                {isModalOpen && (
-                    <div className="fixed inset-0 z-50 overflow-y-auto">
+                {/* Modal Crear/Editar Perfil - Portal para quedar sobre overlay del layout */}
+                {isModalOpen && createPortal(
+                    <div className="fixed inset-0 z-[100] overflow-y-auto">
                         <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-                                <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={handleCloseModal}></div>
-                            </div>
+                            <div className="fixed inset-0 transition-opacity bg-gray-500/75 z-0" aria-hidden="true" onClick={handleCloseModal}></div>
 
                             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-                            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+                            <div className="relative z-10 inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
                                 <form onSubmit={handleSubmit}>
                                     <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                                         <div className="flex justify-between items-center mb-4">
@@ -361,20 +360,19 @@ const PerfilesPage = () => {
                                 </form>
                             </div>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 )}
 
-                {/* Modal Permisos */}
-                {isPermisosModalOpen && (
-                    <div className="fixed inset-0 z-50 overflow-y-auto">
+                {/* Modal Permisos - Portal para quedar sobre overlay del layout */}
+                {isPermisosModalOpen && createPortal(
+                    <div className="fixed inset-0 z-[100] overflow-y-auto">
                         <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-                                <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={handleClosePermisosModal}></div>
-                            </div>
+                            <div className="fixed inset-0 transition-opacity bg-gray-500/75 z-0" aria-hidden="true" onClick={handleClosePermisosModal}></div>
 
                             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-                            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl w-full relative">
+                            <div className="relative z-10 inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl w-full">
                                 {/* Loading Overlay dentro del modal */}
                                 {submitting && (
                                     <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10">
@@ -461,7 +459,8 @@ const PerfilesPage = () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 )}
 
                 {/* Info Banner */}

@@ -162,7 +162,9 @@ const MainLayout = ({ children }) => {
                                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                                 >
                                     <span className="text-sm font-medium text-gray-700 hidden sm:block">
-                                        Dr. {user?.nombre_completo || 'Usuario'}
+                                        {user?.perfil?.nombre_perfil
+                                            ? `${user.perfil.nombre_perfil}: ${user?.nombre_completo || 'Usuario'}`
+                                            : (user?.nombre_completo || 'Usuario')}
                                     </span>
                                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#752568] to-[#5a1d4f] flex items-center justify-center text-white font-bold">
                                         {user?.nombre_completo?.charAt(0) || 'U'}
