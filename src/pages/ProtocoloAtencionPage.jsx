@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
 import MainLayout from '../components/layouts/MainLayout';
@@ -22,6 +23,63 @@ import {
     Pencil,
     Unlock
 } from 'lucide-react';
+
+// Tooltip estilizado: se renderiza en portal y se posiciona para no cortarse en los bordes
+const PADDING_VIEWPORT = 12;
+const GAP_BADGE = 8;
+
+const EstadoTooltip = ({ children, observacion }) => {
+    const text = observacion?.trim() || 'Sin observación registrada';
+    const [hovered, setHovered] = useState(false);
+    const [position, setPosition] = useState(null);
+    const triggerRef = useRef(null);
+    const tooltipRef = useRef(null);
+
+    useLayoutEffect(() => {
+        if (!hovered || !triggerRef.current || !tooltipRef.current) return;
+        const triggerRect = triggerRef.current.getBoundingClientRect();
+        const tooltipEl = tooltipRef.current;
+        const tw = tooltipEl.offsetWidth;
+        const th = tooltipEl.offsetHeight;
+        const badgeCenterX = triggerRect.left + triggerRect.width / 2;
+        let left = badgeCenterX - tw / 2;
+        const top = Math.max(PADDING_VIEWPORT, triggerRect.top - th - GAP_BADGE);
+        const maxLeft = typeof window !== 'undefined' ? window.innerWidth - tw - PADDING_VIEWPORT : left;
+        left = Math.max(PADDING_VIEWPORT, Math.min(left, maxLeft));
+        const arrowLeft = badgeCenterX - left;
+        setPosition({ left, top, arrowLeft: `${arrowLeft}px` });
+    }, [hovered]);
+
+    const tooltipContent = hovered && (
+        <div
+            ref={tooltipRef}
+            className="fixed px-3 py-2 rounded-lg bg-white border border-gray-200 shadow-lg text-sm text-gray-800 whitespace-normal min-w-[200px] max-w-lg text-left z-[9999] pointer-events-none"
+            style={position ? { left: position.left, top: position.top } : { left: -9999, top: -9999 }}
+        >
+            {text}
+            {position && (
+                <>
+                    <span className="absolute top-full w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-gray-200" style={{ left: position.arrowLeft, transform: 'translateX(-50%)', marginTop: '-1px' }} />
+                    <span className="absolute top-full w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-white" style={{ left: position.arrowLeft, transform: 'translateX(-50%)', marginTop: '0' }} />
+                </>
+            )}
+        </div>
+    );
+
+    return (
+        <>
+            <span
+                ref={triggerRef}
+                className="inline-flex cursor-help"
+                onMouseEnter={() => setHovered(true)}
+                onMouseLeave={() => { setHovered(false); setPosition(null); }}
+            >
+                {children}
+            </span>
+            {typeof document !== 'undefined' && createPortal(tooltipContent, document.body)}
+        </>
+    );
+};
 
 const ProtocoloAtencionPage = () => {
     const navigate = useNavigate();
@@ -83,6 +141,7 @@ const ProtocoloAtencionPage = () => {
     const [turnosDisponibles, setTurnosDisponibles] = useState([]);
     const [loadingTurnos, setLoadingTurnos] = useState(false);
     const [selectedTurno, setSelectedTurno] = useState(null);
+    const [modalObservacion, setModalObservacion] = useState('');
 
     // Meses
     const meses = [
@@ -220,6 +279,7 @@ const ProtocoloAtencionPage = () => {
         setModalOpen(true);
         setSelectedTurno(null);
         setTurnosDisponibles([]);
+        setModalObservacion('');
 
         const medicoId = cita.medico_id || cita.medico?.id;
 
@@ -307,12 +367,10 @@ const ProtocoloAtencionPage = () => {
                 };
             } else if (modalType === 'no_se_presento') {
                 endpoint = '/protocolos/no_presento';
-                payload = { cita_id: selectedCita.id };
-                // Aquí se podrían agregar motivo y archivo si se implementa en el backend
+                payload = { cita_id: selectedCita.id, observacion: modalObservacion || undefined };
             } else if (modalType === 'cancelar') {
                 endpoint = '/protocolos/cancelar';
-                payload = { cita_id: selectedCita.id };
-                // Aquí se podrían agregar motivo y archivo si se implementa en el backend
+                payload = { cita_id: selectedCita.id, observacion: modalObservacion || undefined };
             }
 
             const response = await axios.post(endpoint, payload);
@@ -398,8 +456,24 @@ const ProtocoloAtencionPage = () => {
         
         switch (parseInt(estado)) {
             case 2: return <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1 w-fit"><CircleCheck className="w-3 h-3" /> Atendido</span>;
-            case 3: return <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1 w-fit"><CircleX className="w-3 h-3" /> No se presentó</span>;
-            case 4: return <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 flex items-center gap-1 w-fit"><Ban className="w-3 h-3" /> Cancelado</span>;
+            case 3: {
+                const badge = <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1 w-fit"><CircleX className="w-3 h-3" /> No se presentó</span>;
+                const observacion = cita?.estado_observacion?.trim?.() || '';
+                return (
+                    <EstadoTooltip observacion={observacion || 'Sin observación registrada'}>
+                        {badge}
+                    </EstadoTooltip>
+                );
+            }
+            case 4: {
+                const badge = <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 flex items-center gap-1 w-fit"><Ban className="w-3 h-3" /> Cancelado</span>;
+                const observacion = cita?.estado_observacion?.trim?.() || '';
+                return (
+                    <EstadoTooltip observacion={observacion || 'Sin observación registrada'}>
+                        {badge}
+                    </EstadoTooltip>
+                );
+            }
             default: return <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 flex items-center gap-1 w-fit"><Clock className="w-3 h-3" /> Por Atender</span>;
         }
     };
@@ -1107,12 +1181,14 @@ const ProtocoloAtencionPage = () => {
                                                 Por favor, registre el motivo de la {modalType === 'cancelar' ? 'cancelación' : 'inasistencia'}.
                                             </p>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Motivo *</label>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Motivo / Observación</label>
                                                 <textarea
+                                                    value={modalObservacion}
+                                                    onChange={(e) => setModalObservacion(e.target.value)}
                                                     className="w-full border-gray-300 rounded-lg text-sm focus:ring-[#752568] focus:border-[#752568] p-2"
                                                     rows="3"
-                                                    placeholder="Describa el motivo..."
-                                                ></textarea>
+                                                    placeholder="Describa el motivo (opcional). Se mostrará al pasar el cursor sobre el estado."
+                                                />
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Adjuntar Evidencia (Opcional)</label>
@@ -1122,7 +1198,7 @@ const ProtocoloAtencionPage = () => {
                                                 />
                                             </div>
                                             <p className="text-xs text-gray-500 italic">
-                                                Este campo es obligatorio para proceder con la acción.
+                                                Si ingresa una observación, se mostrará al pasar el cursor sobre el estado en el listado.
                                             </p>
                                         </div>
                                     )}
